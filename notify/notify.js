@@ -1,0 +1,56 @@
+const admin=require('firebase-admin');
+const sa=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT||'{}');
+if(!sa.project_id){console.log('FIREBASE_SERVICE_ACCOUNT সেট করা নেই');process.exit(0)}
+admin.initializeApp({credential:admin.credential.cert(sa)});
+const db=admin.firestore();
+const TG_T=process.env.TELEGRAM_TOKEN,TG_C=process.env.TELEGRAM_CHAT;
+const since=new Date(Date.now()-3*864e5).toISOString();
+
+async function tg(text){
+  if(!TG_T||!TG_C)return;
+  try{const r=await fetch('https://api.telegram.org/bot'+TG_T+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TG_C,text})});if(!r.ok)console.log('telegram',r.status)}catch(e){console.log('telegram',e.message)}
+}
+async function push(key,title,body){
+  if(!key)return;
+  const d=await db.collection('hqra_fcmTokens').doc(String(key)).get();
+  const toks=d.exists?(d.data().tokens||[]):[];if(!toks.length)return;
+  const res=await admin.messaging().sendEachForMulticast({tokens:toks,data:{title:String(title),body:String(body||'').slice(0,140),url:'/'},webpush:{headers:{Urgency:'high',TTL:'86400'}}});
+  const dead=[];res.responses.forEach((r,i)=>{if(!r.success&&/not-registered|invalid-argument|invalid-registration/.test((r.error&&r.error.code)||''))dead.push(toks[i])});
+  if(dead.length)await d.ref.update({tokens:toks.filter(t=>!dead.includes(t))});
+}
+const money=n=>'৳ '+Number(n||0).toLocaleString('en-US');
+
+(async()=>{
+  const ps=await db.collection('hqra_payments').where('createdAt','>',since).get();
+  for(const doc of ps.docs){
+    const p=doc.data(),upd={};
+    if(p.status==='pending'&&!p.tgNew){
+      await tg('💰 নতুন পেমেন্ট\n'+(p.name||'')+' ('+(p.memberNo||'')+')\n'+money(p.amount)+' • '+(p.kind==='share'?'শেয়ার কিস্তি':'মাসিক জমা')+'\nTrxID: '+(p.trxId||'')+'\nনম্বর: '+(p.senderNumber||''));
+      upd.tgNew=true;
+    }
+    if((p.status==='approved'||p.status==='rejected')&&p.notifiedStatus!==p.status){
+      if(p.status==='approved'){await push(p.memberKey,'✅ পেমেন্ট নিশ্চিত হয়েছে',money(p.amount)+' আপনার হিসাবে যুক্ত হয়েছে।');await tg('✅ নিশ্চিত'+(p.auto?' (অটো)':'')+'\n'+(p.name||'')+' • '+money(p.amount)+' • '+(p.trxId||''))}
+      else await push(p.memberKey,'❌ পেমেন্ট গ্রহণ হয়নি',money(p.amount)+' — অ্যাডমিনের সাথে যোগাযোগ করুন।');
+      upd.notifiedStatus=p.status;
+    }
+    if(Object.keys(upd).length)await doc.ref.update(upd);
+  }
+  const ms=await db.collection('hqra_messages').where('createdAt','>',since).get();
+  for(const doc of ms.docs){
+    const m=doc.data();if(m.pushed)continue;
+    if(m.from==='admin')await push(m.memberKey,'অ্যাডমিনের বার্তা',m.text);
+    else if(m.from==='member')await tg('💬 সদস্যের বার্তা\n'+(m.name||'')+' ('+(m.memberNo||'')+')\n'+String(m.text||'').slice(0,300));
+    await doc.ref.update({pushed:true});
+  }
+  const stRef=db.collection('hqra_pushState').doc('main'),stDoc=await stRef.get(),state=stDoc.exists?stDoc.data():{},seen=state.notices||{},first=!stDoc.exists;
+  const next={};const sts=await db.collection('hqra_statements').get();
+  for(const d of sts.docs){
+    const s=d.data(),ids=(Array.isArray(s.notices)?s.notices:[]).map(n=>String(n.title||'')+'|'+String(n.date||''));
+    next[d.id]=ids;
+    if(first)continue;
+    const old=new Set(seen[d.id]||[]);const fresh=(Array.isArray(s.notices)?s.notices:[]).filter(n=>!old.has(String(n.title||'')+'|'+String(n.date||'')));
+    if(fresh.length)await push(d.id,'নতুন নোটিশ',String(fresh[fresh.length-1].title||''));
+  }
+  await stRef.set({notices:next,updatedAt:new Date().toISOString()});
+  console.log('ok');
+})().catch(e=>{console.error(e);process.exit(1)});
