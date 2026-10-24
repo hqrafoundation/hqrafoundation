@@ -843,12 +843,12 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
  var C=window.HQRA_FCM;
  function ok(){return C.messagingSenderId&&C.appId&&C.vapidKey&&('Notification' in window)&&('serviceWorker' in navigator)&&location.protocol==='https:'}
  function ld(u){return new Promise(function(r,j){var s=document.createElement('script');s.src=u;s.onload=r;s.onerror=j;document.head.appendChild(s)})}
- window.hqPushEnable=async function(){
+ window.hqPushEnable=async function(silent){
   var m=document.getElementById('pushMsg');function say(t,c){if(m){m.style.color=c||'#fbbf24';m.textContent=t}}
   try{
-   var p=await Notification.requestPermission();
-   if(p!=='granted')return say('নোটিফিকেশনের অনুমতি দেওয়া হয়নি। ফোনের সেটিংস থেকে অনুমতি দিন।','#f87171');
-   say('চালু হচ্ছে…');
+   var p=silent?Notification.permission:await Notification.requestPermission();
+   if(p!=='granted')return silent?0:say('নোটিফিকেশনের অনুমতি দেওয়া হয়নি। ফোনের সেটিংস থেকে অনুমতি দিন।','#f87171');
+   if(!silent)say('চালু হচ্ছে…');
    await ld('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
    await ld('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
    firebase.initializeApp({apiKey:C.apiKey,projectId:C.projectId,messagingSenderId:C.messagingSenderId,appId:C.appId});
@@ -857,9 +857,9 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
    var st=((window.HQRA_MEMBER_DATA||{}).statement)||{};if(!tok||!st.id)throw new Error('token');
    await hqraMember.post('https://firestore.googleapis.com/v1/projects/'+C.projectId+'/databases/(default)/documents/hqra_fcmTokens/'+encodeURIComponent(st.id),{fields:{tokens:{arrayValue:{values:[{stringValue:tok}]}},updatedAt:{stringValue:new Date().toISOString()}}},'PATCH');
    try{localStorage.setItem('hqra_push_on','1')}catch(e){}
-   say('✅ চালু হয়েছে। অ্যাপ বন্ধ থাকলেও নোটিফিকেশন আসবে।','#34d399');
+   if(!silent)say('✅ চালু হয়েছে। অ্যাপ বন্ধ থাকলেও নোটিফিকেশন আসবে।','#34d399');
    var b=document.getElementById('pushBox');if(b)setTimeout(function(){b.style.display='none'},2500);
-  }catch(e){say('চালু করা গেল না। নেট দেখে আবার চেষ্টা করুন।','#f87171')}
+  }catch(e){if(!silent)say('চালু করা গেল না। নেট দেখে আবার চেষ্টা করুন।','#f87171')}
  };
  function show(){
   if(!ok()||Notification.permission==='denied')return;
@@ -869,12 +869,13 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
   d.innerHTML='<b>🔔 নোটিফিকেশন চালু করুন</b><div style="font-size:12.5px;margin:6px 0;opacity:.85">অ্যাডমিনের বার্তা, পেমেন্ট নিশ্চিত ও নতুন নোটিশ — অ্যাপ বন্ধ থাকলেও ফোনে জানাবে।</div><button class="mini" onclick="hqPushEnable()">চালু করুন</button><div id="pushMsg" style="font-size:12.5px;margin-top:6px"></div>';
   h.parentNode.insertBefore(d,h.nextSibling);
  }
- setInterval(function(){if(document.body.classList.contains('logged-in'))show()},2500);
+ function resync(){try{if(!ok()||Notification.permission!=='granted'||sessionStorage.getItem('hqra_push_sync')==='1')return;if(!((window.HQRA_MEMBER_DATA||{}).statement||{}).id)return;sessionStorage.setItem('hqra_push_sync','1');window.hqPushEnable(true)}catch(e){}}
+ setInterval(function(){if(document.body.classList.contains('logged-in')){show();resync()}},2500);
 })();
 </script>
 <script id="hqra-update">
 /* নতুন সংস্করণ এলে সদস্যের অ্যাপ নিজে নতুন হয়ে যাবে (লিংক বদলাতে হবে না) */
-window.HQRA_APP_VER="2026-10-23-1217";
+window.HQRA_APP_VER="2026-10-24-0215";
 (function(){
  if(!/^https?:$/.test(location.protocol))return;
  var busy=false;
