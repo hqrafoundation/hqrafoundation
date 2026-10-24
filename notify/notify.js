@@ -13,7 +13,7 @@ async function tg(text){
 }
 async function push(key,title,body){
   const r=await push0(key,title,body);
-  await tg('🔔 পুশ রিপোর্ট\nসদস্য: '+(key||'(কী নেই)')+'\n'+title+'\nফল: '+(global.__why||''));
+  if(!r)await tg('⚠️ পুশ যায়নি\nসদস্য: '+(key||'(কী নেই)')+'\n'+title+'\nকারণ: '+(global.__why||''));
   return r;
 }
 async function push0(key,title,body){
