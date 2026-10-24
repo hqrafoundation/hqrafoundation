@@ -11,16 +11,21 @@ async function tg(text){
   try{const r=await fetch('https://api.telegram.org/bot'+TG_T+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TG_C,text})});if(!r.ok)console.log('telegram',r.status)}catch(e){console.log('telegram',e.message)}
 }
 async function push(key,title,body){
-  if(!key)return;
+  if(!key){console.log('push: সদস্য কী নেই');return false}
   const d=await db.collection('hqra_fcmTokens').doc(String(key)).get();
-  const toks=d.exists?(d.data().tokens||[]):[];if(!toks.length)return;
+  const toks=d.exists?(d.data().tokens||[]):[];
+  if(!toks.length){console.log('push: '+key+' — এই সদস্যের ফোনের টোকেন নেই (নোটিফিকেশন চালু করেনি)');return false}
   const res=await admin.messaging().sendEachForMulticast({tokens:toks,data:{title:String(title),body:String(body||'').slice(0,140),url:'/'},webpush:{headers:{Urgency:'high',TTL:'86400'}}});
-  const dead=[];res.responses.forEach((r,i)=>{if(!r.success&&/not-registered|invalid-argument|invalid-registration/.test((r.error&&r.error.code)||''))dead.push(toks[i])});
+  console.log('push: '+key+' — '+title+' — সফল '+res.successCount+', ব্যর্থ '+res.failureCount);
+  const dead=[];res.responses.forEach((r,i)=>{if(!r.success){console.log('  ব্যর্থ কারণ: '+((r.error&&r.error.code)||'')+' | '+((r.error&&r.error.message)||'').slice(0,160));if(/not-registered|invalid-argument|invalid-registration/.test((r.error&&r.error.code)||''))dead.push(toks[i])}});
   if(dead.length)await d.ref.update({tokens:toks.filter(t=>!dead.includes(t))});
+  return res.successCount>0;
 }
 const money=n=>'৳ '+Number(n||0).toLocaleString('en-US');
 
 (async()=>{
+  const tk=await db.collection('hqra_fcmTokens').get();console.log('টোকেন জমা আছে: '+tk.size+' জন সদস্যের (কী: '+tk.docs.map(x=>x.id).join(', ')+')');
+  if(process.env.TEST_KEY){await push(process.env.TEST_KEY.trim(),'🔔 পরীক্ষা','HQRA নোটিফিকেশন ঠিকমতো কাজ করছে।')}
   const ps=await db.collection('hqra_payments').where('createdAt','>',since).get();
   for(const doc of ps.docs){
     const p=doc.data(),upd={};
