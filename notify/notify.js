@@ -13,7 +13,9 @@ async function tg(text){
 }
 async function push(key,title,body){
   const r=await push0(key,title,body);
-  if(!r)await tg('⚠️ পুশ যায়নি\nসদস্য: '+(key||'(কী নেই)')+'\n'+title+'\nকারণ: '+(global.__why||''));
+  const w=String(global.__why||'');
+  global.__noTok=/টোকেন নেই|কী নেই/.test(w);
+  if(!r&&!global.__noTok)await tg('⚠️ পুশ যায়নি\nসদস্য: '+(key||'(কী নেই)')+'\n'+title+'\nকারণ: '+w);
   return r;
 }
 async function push0(key,title,body){
@@ -58,14 +60,15 @@ const money=n=>'৳ '+Number(n||0).toLocaleString('en-US');
   }
   // ৩) নতুন নোটিশ → সংশ্লিষ্ট সদস্যকে পুশ
   const stRef=db.collection('hqra_pushState').doc('main'),stDoc=await stRef.get(),state=stDoc.exists?stDoc.data():{},seen=state.notices||{},first=!stDoc.exists;
-  const next={};const sts=await db.collection('hqra_statements').get();
+  const next={};const sts=await db.collection('hqra_statements').get();let nOk=0,nNo=0,nTitle='';
   for(const d of sts.docs){
     const s=d.data(),ids=(Array.isArray(s.notices)?s.notices:[]).map(n=>String(n.title||'')+'|'+String(n.date||''));
     next[d.id]=ids;
     if(first)continue;
     const old=new Set(seen[d.id]||[]);const fresh=(Array.isArray(s.notices)?s.notices:[]).filter(n=>!old.has(String(n.title||'')+'|'+String(n.date||'')));
-    if(fresh.length)await push(d.id,'নতুন নোটিশ',String(fresh[fresh.length-1].title||''));
+    if(fresh.length){nTitle=String(fresh[fresh.length-1].title||'');const ok=await push(d.id,'নতুন নোটিশ',nTitle);if(ok)nOk++;else if(global.__noTok)nNo++}
   }
+  if(nOk+nNo>0)await tg('📢 নতুন নোটিশ: '+nTitle+'\nফোনে পাঠানো হয়েছে: '+nOk+' জন\nনোটিফিকেশন চালু নেই: '+nNo+' জন');
   await stRef.set({notices:next,updatedAt:new Date().toISOString()});
   console.log('ok');
 })().catch(e=>{console.error(e);process.exit(1)});
