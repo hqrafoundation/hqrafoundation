@@ -254,7 +254,8 @@ function monthTable(d){
 }
 function hqraPrintDoc(title,bodyHtml){
  const logo=(document.querySelector('#login img')||{}).src||'';
- const html=`<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>${safe(title)}</title><style>@page{size:A4;margin:12mm}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#17211e}.h{text-align:center;border-bottom:3px solid #087f5b;padding-bottom:8px}.h img{width:62px;height:62px;border-radius:50%}.h h1{margin:4px 0;color:#0b152d;font-size:20px}.t{text-align:center;font-weight:800;margin:12px 0;font-size:17px}table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}th,td{border:1px solid #cdd8d3;padding:5px 6px;text-align:left}th{background:#e7f4ee}.b{border:1px solid #cdd8d3;border-radius:8px;padding:8px;margin:8px 0;font-size:14px}.n{margin-top:14px;font-size:11px;color:#555;text-align:center}</style></head><body><div class="h">${logo?`<img src="${logo}">`:''}<h1>HQRA FOUNDATION</h1></div>${bodyHtml}<div class="n">এটি সদস্য অ্যাপ থেকে তৈরি। মুদ্রণের তারিখ: ${new Date().toLocaleString('bn-BD')}</div></body></html>`;
+ let html=`<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>${safe(title)}</title><style>@page{size:A4;margin:12mm}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#17211e}.h{text-align:center;border-bottom:3px solid #087f5b;padding-bottom:8px}.h img{width:62px;height:62px;border-radius:50%}.h h1{margin:4px 0;color:#0b152d;font-size:20px}.t{text-align:center;font-weight:800;margin:12px 0;font-size:17px}table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}th,td{border:1px solid #cdd8d3;padding:5px 6px;text-align:left}th{background:#e7f4ee}.b{border:1px solid #cdd8d3;border-radius:8px;padding:8px;margin:8px 0;font-size:14px}.n{margin-top:14px;font-size:11px;color:#555;text-align:center}</style></head><body><div class="h">${logo?`<img src="${logo}">`:''}<h1>HQRA FOUNDATION</h1></div>${bodyHtml}<div class="n">এটি সদস্য অ্যাপ থেকে তৈরি। মুদ্রণের তারিখ: ${new Date().toLocaleString('bn-BD')}</div></body></html>`;
+ if(window.hqPrintL10n){try{const L=window.hqPrintL10n(html,title);html=L.html;title=L.title}catch(e){console.warn('print l10n',e)}}
  if(window.HQRA_PRINT&&window.HQRA_PRINT.printHtml){try{window.HQRA_PRINT.printHtml(html,title.replace(/[\\/:*?"<>|\s]+/g,'_'));return}catch(e){}}
  const w=window.open('','_blank');if(!w){alert('এই ফোনে প্রিন্ট চালু করা যায়নি।');return}
  w.document.open();w.document.write(html+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},300)}</scr'+'ipt>');w.document.close();
@@ -782,6 +783,8 @@ const HQRA_TERMS_VERSION='v1';
   if(e){return s.replace(t,e[i])}
   var out=s;
   for(var k=0;k<D.part.length;k++){var p=D.part[k];if(out.indexOf(p[0])>=0)out=out.split(p[0]).join(p[1][i])}
+  out=out.replace(/(\d{4}-\d{2})\s*থেকে\s*(\d{4}-\d{2})\s*পর্যন্ত\s*([০-৯0-9]+)\s*মাসের জমা/g,function(_,a1,b1,n){n=digits(n);return ['Deposits for '+n+' months ('+a1+' to '+b1+')','إيداعات '+n+' شهراً ('+a1+' إلى '+b1+')',n+' مہینوں کی جمع ('+a1+' سے '+b1+' تک)'][i]});
+  out=out.replace(/কিস্তি/g,['Instalment','القسط','قسط'][i]);
   out=out.replace(MRE,function(m){return MONTHS[m][i]});
   out=out.replace(/([০-৯0-9])\s*টি(?![\u0980-\u09ff])/g,'$1');
   return digits(out);
@@ -819,6 +822,49 @@ const HQRA_TERMS_VERSION='v1';
  function markAr(){var on=(LANG==='ar'||LANG==='ur');Array.prototype.forEach.call(document.querySelectorAll('.hq-ar'),function(e){e.classList.remove('hq-ar')});if(!on)return;var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null),n;while(n=w.nextNode()){var p=n.parentNode;if(p&&p.classList&&!/^(SCRIPT|STYLE|TEXTAREA|NOSCRIPT)$/.test(p.nodeName)&&/[\u0600-\u06ff]/.test(n.nodeValue))p.classList.add('hq-ar')}}
  function run(){if(busy)return;busy=true;try{walk(document.body);markAr()}catch(e){console.warn('i18n',e)}busy=false}
  new MutationObserver(function(){clearTimeout(T);T=setTimeout(run,40)}).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title']});
+ var PR=[
+ ['সদস্য হিসাব বিবরণী','Member Account Statement','كشف حساب العضو','ممبر اکاؤنٹ اسٹیٹمنٹ'],
+ ['জমা পরিশোধের রসিদ','Deposit Payment Receipt','إيصال دفع الإيداع','جمع ادائیگی کی رسید'],
+ ['জমা জমার রেকর্ড','Deposit Records','سجل الإيداعات','جمع کا ریکارڈ'],
+ ['জমার রেকর্ড','Deposit Records','سجل الإيداعات','جمع کا ریکارڈ'],
+ ['মাসভিত্তিক জমা','Monthly Deposits','الإيداعات الشهرية','ماہانہ جمع'],
+ ['শেয়ার কিস্তি','Share Instalments','أقساط الأسهم','شیئر قسطیں'],
+ ['সদস্য নম্বর:','Member No:','رقم العضو:','ممبر نمبر:'],
+ ['মোবাইল:','Mobile:','الجوال:','موبائل:'],
+ ['মাসিক জমা:','Monthly deposit:','الإيداع الشهري:','ماہانہ جمع:'],
+ ['জমা বকেয়া:','Deposit due:','المستحق:','واجب الادا:'],
+ ['অগ্রিম:','Advance:','مقدم:','ایڈوانس:'],
+ ['শেয়ার:','Shares:','الأسهم:','شیئرز:'],
+ ['সদস্য:','Member:','العضو:','ممبر:'],
+ ['তারিখ:','Date:','التاريخ:','تاریخ:'],
+ ['খাত:','Category:','البند:','مد:'],
+ ['বিবরণ:','Description:','التفاصيل:','تفصیل:'],
+ ['পরিমাণ:','Amount:','المبلغ:','رقم:'],
+ ['মাসিক জমা','Monthly Deposit','إيداع شهري','ماہانہ جمع'],
+ ['মাস','Month','الشهر','مہینہ'],['ধার্য','Due','المقرر','مقررہ'],['জমা','Paid','المدفوع','جمع'],['বকেয়া','Balance','المتبقي','بقایا'],
+ ['তারিখ','Date','التاريخ','تاریخ'],['পরিমাণ','Amount','المبلغ','رقم'],['বিবরণ','Description','التفاصيل','تفصیل'],
+ ['নেই','None','لا يوجد','کوئی نہیں'],
+ ['এটি সদস্য অ্যাপ থেকে তৈরি। মুদ্রণের তারিখ:','Generated by the HQRA Member App. Printed on:','تم إنشاؤه من تطبيق الأعضاء. تاريخ الطباعة:','ممبر ایپ سے تیار کردہ۔ پرنٹ کی تاریخ:'],
+ ['কিস্তি','Instalment','القسط','قسط']
+];PR.sort(function(a,b){return b[0].length-a[0].length});
+ function prFix(t,i){
+  var out=t.replace(/(\d{4}-\d{2})\s*থেকে\s*(\d{4}-\d{2})\s*পর্যন্ত\s*(\d+)\s*মাসের জমা/g,function(_,a,b,n){return ['Deposits for '+n+' months ('+a+' to '+b+')','إيداعات '+n+' شهراً ('+a+' إلى '+b+')',n+' مہینوں کی جمع ('+a+' سے '+b+' تک)'][i]});
+  out=out.replace(/(\d)\s*টি(?![\u0980-\u09ff])/g,'$1');PR.forEach(function(r){if(out.indexOf(r[0])>=0)out=out.split(r[0]).join(r[i+1])});
+  return out;
+ }
+ window.hqPrintL10n=function(html,title){
+  if(LANG==='bn')return {html:html,title:title};
+  var i=IDX[LANG],d=new DOMParser().parseFromString(html,'text/html');
+  var w=d.createTreeWalker(d.body,NodeFilter.SHOW_TEXT,null),n;
+  while(n=w.nextNode()){var p=n.parentNode&&n.parentNode.nodeName;if(p==='STYLE'||p==='SCRIPT')continue;
+   var t=n.nodeValue,o=prFix(t,i);o=trText(o);o=o.replace('Paid Deposit records','Deposit Records').replace('Share installment','Share Instalments');o=digits(o).replace(/৳\s*/g,'BDT ');n.nodeValue=o}
+  d.documentElement.setAttribute('lang',LANG);
+  var rtl=(LANG==='ar'||LANG==='ur');d.body.setAttribute('dir',rtl?'rtl':'ltr');
+  if(rtl){var st=d.createElement('style');st.textContent='th,td{text-align:right!important}body{font-family:"Noto Naskh Arabic","Amiri",Arial,sans-serif}';d.head.appendChild(st)}
+  var tt=String(title||'').replace('স্টেটমেন্ট','Statement').replace('রসিদ','Receipt');
+  d.title=tt;
+  return {html:'<!doctype html>'+d.documentElement.outerHTML,title:tt};
+ };
  window.hqSetLang=function(l){if(l!=='bn'&&!IDX.hasOwnProperty(l))return;LANG=l;try{localStorage.setItem(KEY,l)}catch(e){}applyDir();run();var m=document.getElementById('langModal');if(m)m.style.display='none';renderLangBtn()};
  /* alert/confirm/prompt */
  ['alert','confirm','prompt'].forEach(function(f){var o=window[f];window[f]=function(m){var a=Array.prototype.slice.call(arguments);if(typeof a[0]==='string')a[0]=trText(a[0]);if(typeof a[1]==='string')a[1]=trText(a[1]);return o.apply(window,a)}});
@@ -904,7 +950,7 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
 </script>
 <script id="hqra-update">
 /* নতুন সংস্করণ এলে সদস্যের অ্যাপ নিজে নতুন হয়ে যাবে (লিংক বদলাতে হবে না) */
-window.HQRA_APP_VER="2026-10-25-1055";
+window.HQRA_APP_VER="2026-10-25-1534";
 (function(){
  if(!/^https?:$/.test(location.protocol))return;
  var busy=false;
