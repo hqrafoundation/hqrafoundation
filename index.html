@@ -163,7 +163,8 @@ async function autoLogin(){
 document.addEventListener('DOMContentLoaded',()=>{
  const f=document.getElementById('login');
  if(f)f.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();login();}});
- try{hqraMember.clear()}catch(e){}
+ try{var _k=0;try{_k=Number(sessionStorage.getItem('hqra_upd_keep')||0);sessionStorage.removeItem('hqra_upd_keep')}catch(e){}
+  if(_k&&Date.now()-_k<120000&&hqraMember.loadSession()){autoLogin()}else{hqraMember.clear()}}catch(e){}
 });
 async function logout(){
  if(!confirm('লগআউট করবেন?'))return;
@@ -564,7 +565,7 @@ async function applySubmit(){
  if(!nom.div||!nom.dist||!nom.upa||!nom.vil)return bad('নমিনির ঠিকানায় বিভাগ, জেলা, উপজেলা ও গ্রাম/পাড়া দিন।','apNomDiv');
  if(!g('apAgree').checked)return bad('ঘোষণায় টিক দিন।','apAgree');
  const id='app-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
- const f={id,status:'pending',createdAt:new Date().toISOString(),termsAccepted:'yes',termsVersion:(typeof HQRA_TERMS_VERSION!=='undefined'?HQRA_TERMS_VERSION:''),termsAt:(window.__apTermsAt||new Date().toISOString()),name:v('apName'),fatherName:v('apFather'),dob,nationality:v('apNat'),email:em,nid,
+ const f={id,status:'pending',createdAt:new Date().toISOString(),termsAccepted:'yes',termsVersion:(window.__hqTermsVer||(typeof HQRA_TERMS_VERSION!=='undefined'?HQRA_TERMS_VERSION:'')),termsAt:(window.__apTermsAt||new Date().toISOString()),name:v('apName'),fatherName:v('apFather'),dob,nationality:v('apNat'),email:em,nid,
   presDiv:pres.div,presDist:pres.dist,presUpa:pres.upa,presUni:pres.uni,presPO:pres.po,presVil:pres.vil,presAddress:apFlat(pres),
   permDiv:perm.div,permDist:perm.dist,permUpa:perm.upa,permUni:perm.uni,permPO:perm.po,permVil:perm.vil,permAddress:apFlat(perm),
   whatsapp:wa,altPhone:alt,altWho:v('apAltWho'),occupation:v('apJob'),deeniEdu:v('apDeeni'),generalEdu:v('apGen'),lastQual:v('apQual'),incomeRange:v('apInc'),reference:v('apRef'),shares:sh,
@@ -754,6 +755,20 @@ const HQRA_TERMS=[
  'শর্তাবলী শীঘ্রই যোগ করা হবে।'
 ];
 const HQRA_TERMS_VERSION='v1';
+function hqTermsList(){var t=window.__hqTerms;return (Array.isArray(t)&&t.length)?t:HQRA_TERMS}
+async function hqTermsFetch(){
+ try{
+  try{var c=JSON.parse(localStorage.getItem('hqra_terms_cache_v1')||'null');if(c&&c.items&&c.items.length&&!window.__hqTerms){window.__hqTerms=c.items;window.__hqTermsVer=c.version||''}}catch(e){}
+  var r=await fetch('https://firestore.googleapis.com/v1/projects/'+AP_PROJECT+'/databases/(default)/documents/hqra_config/terms',{cache:'no-store'});
+  if(!r.ok)return;var d=await r.json(),f=d.fields||{};
+  var items=((f.items&&f.items.arrayValue&&f.items.arrayValue.values)||[]).map(function(v){return v.stringValue||''}).filter(Boolean);
+  var ver=(f.version&&f.version.stringValue)||'';
+  var changed=JSON.stringify(items)!==JSON.stringify(window.__hqTerms||[]);
+  window.__hqTerms=items;window.__hqTermsVer=ver;
+  try{localStorage.setItem('hqra_terms_cache_v1',JSON.stringify({items:items,version:ver}))}catch(e){}
+  if(changed&&!window.__apTerms){var a=document.getElementById('apply');if(a&&a.classList.contains('show')){var chk=document.getElementById('apTermsChk');if(!chk||!chk.checked)applyOpen()}}
+ }catch(e){}
+}
 (function(){
  var _ao=applyOpen;
  window.__apTerms=false;
@@ -761,8 +776,9 @@ const HQRA_TERMS_VERSION='v1';
   var b=document.getElementById('applyBody');
   if(window.__apTerms){_ao();return}
   b.dataset.ready='';
-  b.innerHTML='<div class="ap-card"><h3>ভর্তির শর্তাবলী</h3><div class="ap-note">ভর্তি আবেদনের আগে নিচের শর্তগুলো মনোযোগ দিয়ে পড়ুন।</div></div><div class="ap-card" style="max-height:52vh;overflow-y:auto;line-height:1.85;font-size:14px">'+HQRA_TERMS.map(function(t,i){return '<p style="margin:0 0 10px;white-space:pre-wrap">'+(HQRA_TERMS.length>1?'<b>'+(i+1)+'.</b> ':'')+safe(t)+'</p>'}).join('')+'</div><label class="ap-chk" style="margin:4px 4px 8px"><input type="checkbox" id="apTermsChk" onchange="document.getElementById(\'apTermsBtn\').disabled=!this.checked"> আমি শর্তাবলী পড়েছি এবং মেনে নিলাম।</label><button class="ap-btn" id="apTermsBtn" disabled onclick="window.__apTerms=true;window.__apTermsAt=new Date().toISOString();applyOpen()">শর্ত মেনে আবেদন ফরম খুলুন</button>';
+  b.innerHTML='<div class="ap-card"><h3>ভর্তির শর্তাবলী</h3><div class="ap-note">ভর্তি আবেদনের আগে নিচের শর্তগুলো মনোযোগ দিয়ে পড়ুন।</div></div><div class="ap-card" style="max-height:52vh;overflow-y:auto;line-height:1.85;font-size:14px">'+hqTermsList().map(function(t,i){return '<p style="margin:0 0 10px;white-space:pre-wrap">'+(hqTermsList().length>1?'<b>'+(i+1)+'.</b> ':'')+safe(t)+'</p>'}).join('')+'</div><label class="ap-chk" style="margin:4px 4px 8px"><input type="checkbox" id="apTermsChk" onchange="document.getElementById(\'apTermsBtn\').disabled=!this.checked"> আমি শর্তাবলী পড়েছি এবং মেনে নিলাম।</label><button class="ap-btn" id="apTermsBtn" disabled onclick="window.__apTerms=true;window.__apTermsAt=new Date().toISOString();applyOpen()">শর্ত মেনে আবেদন ফরম খুলুন</button>';
   var a=document.getElementById('apply');a.classList.add('show');a.scrollTop=0;
+  if(!window.__apTermsFetching){window.__apTermsFetching=1;hqTermsFetch().then(function(){window.__apTermsFetching=0})}
  };
 })();
 </script><script id="hqra-lang">
@@ -951,7 +967,14 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
 </script>
 <script id="hqra-update">
 /* নতুন সংস্করণ এলে সদস্যের অ্যাপ নিজে নতুন হয়ে যাবে (লিংক বদলাতে হবে না) */
-window.HQRA_APP_VER="2026-10-26-0226";
+window.HQRA_APP_VER="2026-10-26-0658";
+window.hqraDoUpdate=function(){
+ try{if(typeof hqraKeepAlive==='function')hqraKeepAlive(120000)}catch(e){}
+ try{sessionStorage.setItem('hqra_upd_try',window.__hqLatest||'1');sessionStorage.setItem('hqra_upd_keep',String(Date.now()))}catch(e){}
+ var go=function(){location.replace(location.pathname+'?u='+Date.now())};
+ try{if(window.caches&&caches.keys){caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}).then(go,go);return}}catch(e){}
+ go()
+};
 (function(){
  if(!/^https?:$/.test(location.protocol))return;
  var busy=false;
@@ -959,13 +982,13 @@ window.HQRA_APP_VER="2026-10-26-0226";
   if(document.getElementById('updBar'))return;
   var d=document.createElement('div');d.id='updBar';
   d.style.cssText='position:fixed;left:10px;right:10px;top:10px;z-index:100000;background:#087f5b;color:#fff;border:1px solid #c8a44d;border-radius:12px;padding:10px 12px;font:600 13px "Noto Sans Bengali",Arial;display:flex;gap:8px;align-items:center;justify-content:space-between';
-  d.innerHTML='<span>🔄 অ্যাপের নতুন সংস্করণ এসেছে</span><button style="background:#fff;color:#087f5b;border:0;border-radius:9px;padding:6px 12px;font:700 13px inherit" onclick="location.reload()">আপডেট করুন</button>';
+  d.innerHTML='<span>🔄 অ্যাপের নতুন সংস্করণ এসেছে</span><button style="background:#fff;color:#087f5b;border:0;border-radius:9px;padding:6px 12px;font:700 13px inherit" onclick="hqraDoUpdate()">আপডেট করুন</button>';
   document.body.appendChild(d);
  }
  function check(){
   if(busy)return;busy=true;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){
-   if(j&&j.v&&j.v!==window.HQRA_APP_VER)bar();
+   if(j&&j.v&&j.v!==window.HQRA_APP_VER){window.__hqLatest=j.v;var t='';try{t=sessionStorage.getItem('hqra_upd_try')||''}catch(e){}if(t===j.v)return;bar()}
   }).catch(function(){}).then(function(){busy=false});
  }
  setTimeout(check,4000);setInterval(check,5*60*1000);
