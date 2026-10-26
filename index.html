@@ -951,7 +951,7 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
 </script>
 <script id="hqra-update">
 /* নতুন সংস্করণ এলে সদস্যের অ্যাপ নিজে নতুন হয়ে যাবে (লিংক বদলাতে হবে না) */
-window.HQRA_APP_VER="2026-10-26-0125";
+window.HQRA_APP_VER="2026-10-26-0226";
 (function(){
  if(!/^https?:$/.test(location.protocol))return;
  var busy=false;
@@ -2254,7 +2254,8 @@ function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(m){return 
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function D(v){var x=dg(v).trim();var m=x.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return String(m[3]).padStart(2,'0')+' '+MON[Number(m[2])-1]+' '+m[1];var b=x.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);if(b)return String(b[1]).padStart(2,'0')+' '+MON[Number(b[2])-1]+' '+b[3];return x||'-'}
 var MAP=[['মাসিক সদস্য জমা','Monthly member deposit'],['মাসিক জমা','Monthly Deposit'],['শেয়ার কিস্তি','Share Instalment'],['অন্যান্য','Others'],['অনুদান','Donation'],['দান','Donation'],['বিকাশ','bKash'],['নগদ','Cash'],['ব্যাংক','Bank'],['রকেট','Rocket'],['কিস্তি','Instalment'],['জমা','Deposit']];
-function EN(s){var t=dg(s);t=t.replace(/(\d{4}-\d{2})\s*থেকে\s*(\d{4}-\d{2})\s*পর্যন্ত\s*(\d+)\s*মাসের জমা/g,'Deposits for $3 months ($1 to $2)');MAP.forEach(function(p){t=t.split(p[0]).join(p[1])});t=t.replace(/\bbkash\b/ig,'bKash').replace(/\bnagad\b/ig,'Nagad');return t.replace(/\s+/g,' ').trim()}
+var BM={'জানুয়ারি':'Jan','ফেব্রুয়ারি':'Feb','মার্চ':'Mar','এপ্রিল':'Apr','মে':'May','জুন':'Jun','জুলাই':'Jul','আগস্ট':'Aug','সেপ্টেম্বর':'Sep','অক্টোবর':'Oct','নভেম্বর':'Nov','ডিসেম্বর':'Dec'};
+function EN(s){var t=dg(s);t=t.replace(/(\d{4}-\d{2})\s*থেকে\s*(\d{4}-\d{2})\s*পর্যন্ত\s*(\d+)\s*মাসের জমা/g,'Deposits for $3 months ($1 to $2)');Object.keys(BM).forEach(function(k){t=t.replace(new RegExp(k+'[-\\s]*(\\d{4})','g'),BM[k]+' $1')});t=t.replace(/টাকা জমা হয়েছে/g,'deposit received').replace(/\sহতে\s/g,' to ').replace(/\sপর্যন্ত/g,'');t=t.replace(/(\d{4}-\d{2}(?:,\s*\d{4}-\d{2})*)\s*মাসের জমা/g,'Deposit for $1').replace(/মাসের জমা/g,'monthly deposit');t=t.replace(/(\d{4}-\d{2})\s*থেকে\s*(\d{4}-\d{2})\s*পর্যন্ত\s*(\d+)\s*মাসের জমা/g,'Deposits for $3 months ($1 to $2)');MAP.forEach(function(p){t=t.split(p[0]).join(p[1])});t=t.replace(/\bbkash\b/ig,'bKash').replace(/\bnagad\b/ig,'Nagad');return t.replace(/\s+/g,' ').trim()}
 function fm(p){return (p/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
 var ON=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],TN=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
 function w99(n){return n<20?ON[n]:TN[Math.floor(n/10)]+(n%10?'-'+ON[n%10]:'')}
@@ -2265,7 +2266,7 @@ function split(p){var m=Math.round(p*.4),g=Math.round(p*.4),f=Math.round(p*.1),h
 var FUNDS=[['Medical Fund','40%','#2563eb','#e8f0ff'],['General Fund','40%','#059669','#e3f6ee'],['Foundation Management Fund','10%','#d97706','#fff3d9'],['Human Welfare Fund','10%','#db2777','#fde8f1']];
 function contact(){var c={};try{c=((window.HQRA_MEMBER_DATA||{}).statement||{}).contact||{}}catch(e){}return {ph:(c.phone&&String(c.phone).trim())||'+880 1805-526319',em:(c.email&&String(c.email).trim())||'hqrafoundation1226@gmail.com'}}
 function qr(kind,no,mn,amt,date){try{var a=String(Math.round(Number(amt)||0)),d=String(date||'').replace(/[^0-9-]/g,'').slice(0,10),m=String(mn||'-').replace(/[^A-Za-z0-9-]/g,'')||'-',n=String(no).replace(/[^A-Za-z0-9-]/g,'');var base=['HQRA',kind,n,m,a,d].join('|');return HQ_QR(base+'|'+hqChk(base),96)}catch(e){return ''}}
-var CSS='@page{size:A4;margin:9mm}html{zoom:1.45}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#12202b;background:#fff;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+var CSS='@page{size:A4;margin:9mm}html{zoom:1.15}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#12202b;background:#fff;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
 +'.top{background:linear-gradient(100deg,#0b2a4a,#087f5b);color:#fff;padding:12px 14px;border-radius:10px 10px 0 0;display:flex;align-items:center;gap:12px}.top .lg{background:#fff;border-radius:50%;width:58px;height:58px;display:flex;align-items:center;justify-content:center;flex:none}.top .lg img{width:54px;height:54px;object-fit:contain;border-radius:50%}.top h1{white-space:nowrap;margin:0;font-size:20px;letter-spacing:.5px}.top .sub{font-size:11px;color:#bfeede;margin-top:2px;letter-spacing:1px;text-transform:uppercase}.top .ct{margin-left:auto;text-align:right;font-size:10.5px;line-height:1.55;color:#e6fff6}'
 +'.band{height:5px;background:linear-gradient(90deg,#2563eb 25%,#059669 25% 50%,#d97706 50% 75%,#db2777 75%)}'
 +'.ref{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 4px 6px}.ref table{border-collapse:collapse;font-size:12px}.ref td{padding:2.5px 10px 2.5px 0;vertical-align:top}.ref td.k{color:#087f5b;font-weight:700;white-space:nowrap}.ref .q{text-align:center;font-size:9px;color:#5c6b66;flex:none}.ref .q div.b{border:1px solid #cdd8d3;padding:2px;background:#fff;display:inline-block}'
@@ -2276,7 +2277,7 @@ var CSS='@page{size:A4;margin:9mm}html{zoom:1.45}*{box-sizing:border-box}body{ma
 +'.words{margin-top:6px;background:#fff7e0;border:1px solid #f1d58a;border-radius:6px;padding:7px 10px;font-size:11.5px}.words b{color:#8a5a00}'
 +'.note{margin-top:10px;font-size:10px;color:#4b5a55;border-top:1px dashed #b9c8c1;padding-top:6px}.note b{color:#12202b}'
 +'.sig{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:10px;page-break-inside:avoid}.sig div.s{text-align:center}.sig .im{height:46px;display:flex;align-items:flex-end;justify-content:center}.sig img{max-height:44px;max-width:92%}.sig .l{border-top:1.5px solid #0b2a4a;padding-top:4px;font-size:10.5px;font-weight:700;color:#0b2a4a}'
-+'.foot{margin-top:10px;background:#087f5b;color:#fff;border-radius:0 0 10px 10px;padding:7px 10px;font-size:10.5px;display:flex;justify-content:space-between}';
++'.foot{page-break-inside:avoid;break-inside:avoid;margin-top:10px;background:#087f5b;color:#fff;border-radius:0 0 10px 10px;padding:7px 10px;font-size:10.5px;display:flex;justify-content:space-between}';
 function build(o){
  var logo=(document.querySelector('#login img')||{}).src||'',c=contact();
  var rows=o.rows.map(function(r){return '<tr><td class="k">'+E(r[0])+'</td><td>'+E(r[1])+'</td></tr>'}).join('');
@@ -2308,6 +2309,31 @@ window.hqRcCard=function(){var a=list();if(!a.length)return '<div class="rrow"><
  var opts=a.map(function(it,i){var x=it.x;return '<option value="'+i+'">'+E(formatDate(x.date))+' • ৳ '+Number(x.amount||0).toLocaleString('en-US')+' • '+(it.k==='D'?'মাসিক জমা':'শেয়ার কিস্তি')+'</option>'}).join('');
  return '<div class="rrow"><span>পেমেন্ট বেছে নিন</span><select id="rcSel" style="max-width:62%;padding:6px;border-radius:8px;background:#0f1d33;color:#fff;border:1px solid #2c4468">'+opts+'</select></div><button class="btn" onclick="hqRcPrint(document.getElementById(\'rcSel\').value)">🖨️ রসিদ প্রিন্ট (PDF)</button>'};
 function formatDate(v){var x=String(v||'');var m=x.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]+'/'+m[1]:x}
+
+function ML(k){var m=String(k||'').match(/^(\d{4})-(\d{2})/);return m?MON[Number(m[2])-1]+' '+m[1]:String(k||'')}
+function stmtHtml(){
+ var d=D0(),m=d.member||{},st=d.statement||{},logo=(document.querySelector('#login img')||{}).src||'',c=contact();
+ var months=st.monthsTable||[],dues=d.dues||[],shs=d.sharePayments||[];
+ var paidD=dues.reduce(function(a,x){return a+P(x.amount)},0),paidS=shs.reduce(function(a,x){return a+P(x.amount)},0),tot=paidD+paidS,sp=split(tot);
+ var mrows=months.map(function(r){var bal=Number(r.bal)||0;return '<tr><td>'+ML(r.k)+'</td><td class="r">'+fm(P(r.exp))+'</td><td class="r">'+fm(P(r.pay))+'</td><td class="r" style="color:'+(bal>0?'#b91c1c':'#047857')+';font-weight:700">'+fm(P(bal))+'</td><td style="text-align:center"><span style="padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:'+(bal>0?'#fee2e2':'#d1fae5')+';color:'+(bal>0?'#b91c1c':'#047857')+'">'+(bal>0?'DUE':'PAID')+'</span></td></tr>'}).join('')||'<tr><td colspan="5">No records</td></tr>';
+ var drows=dues.map(function(x){return '<tr><td>'+E(D(x.date))+'</td><td>'+E(EN(x.method||'')||'-')+'</td><td>'+E(EN(x.note||'Monthly member deposit'))+'</td><td class="r">'+fm(P(x.amount))+'</td></tr>'}).join('')||'<tr><td colspan="4">No records</td></tr>';
+ var srows=shs.map(function(x){return '<tr><td>'+E(D(x.date))+'</td><td>'+E(EN(x.schedule||'-'))+'</td><td>'+E(EN(x.note||'Share instalment'))+'</td><td class="r">'+fm(P(x.amount))+'</td></tr>'}).join('');
+ var css=CSS.replace('@page{size:A5;margin:7mm}','@page{size:A4;margin:9mm}').replace('html{zoom:1.15}','html{zoom:1.1}')+'table.t th{background:#0b2a4a;color:#fff;font-size:11px}table.t td.r,table.t th.r{text-align:right}table.t tr:nth-child(even) td{background:#f4f9f7}table.t tr{page-break-inside:avoid}.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.kv div{border:1px solid #cdd8d3;border-radius:6px;padding:6px 8px;background:#f4f9f7}.kv small{display:block;color:#065f46;font-weight:700;font-size:10px;text-transform:uppercase}.kv b{font-size:13px}';
+ var funds=FUNDS.map(function(f,i){return '<tr style="background:'+f[3]+'"><td class="n" style="border-left:5px solid '+f[2]+';color:'+f[2]+';font-weight:700">'+f[0]+'</td><td style="text-align:center;font-weight:700">'+f[1]+'</td><td class="r" style="font-weight:700">'+fm(sp[i])+'</td></tr>'}).join('');
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HQRA Statement '+E(m.memberNo||'')+'</title><style>'+css+'</style></head><body>'+hqWM(logo)
+ +'<div class="top"><div class="lg">'+(logo?'<img src="'+logo+'">':'')+'</div><div><h1>HQRA FOUNDATION</h1><div class="sub">Member Account Statement</div></div><div class="ct">Phone: '+E(c.ph)+'<br>Email: '+E(c.em)+'</div></div><div class="band"></div>'
+ +'<div class="ref"><table><tr><td class="k">Member</td><td><b>'+E(m.name||'-')+'</b></td></tr><tr><td class="k">Member ID</td><td>'+E(m.memberNo||'-')+'</td></tr><tr><td class="k">Mobile</td><td>'+E(m.phone||'-')+'</td></tr><tr><td class="k">Statement Date</td><td>'+E(D(new Date().toISOString().slice(0,10)))+'</td></tr></table></div>'
+ +'<div class="kv"><div><small>Shares</small><b>'+Number(m.shares||0)+'</b></div><div><small>Monthly Deposit</small><b>BDT '+fm(P(m.duesAmount))+'</b></div><div><small>Total Paid</small><b style="color:#047857">BDT '+fm(tot)+'</b></div><div><small>Deposit Due</small><b style="color:'+(Number(st.duesDue)>0?'#b91c1c':'#047857')+'">BDT '+fm(P(st.duesDue))+'</b></div></div>'
+ +'<h3>Monthly Deposit Summary</h3><table class="t"><tr><th>Month</th><th class="r">Assessed</th><th class="r">Paid</th><th class="r">Due</th><th style="text-align:center">Status</th></tr>'+mrows+'</table>'
+ +'<h3>Payment Records</h3><table class="t"><tr><th>Date</th><th>Method</th><th>Description</th><th class="r">Amount (BDT)</th></tr>'+drows+'</table>'
+ +(srows?'<h3>Share Instalment Payments</h3><table class="t"><tr><th>Date</th><th>Instalment</th><th>Description</th><th class="r">Amount (BDT)</th></tr>'+srows+'</table>':'')
+ +'<h3>Fund Distribution Of Total Paid</h3><table class="t f"><tr><th>Fund</th><th style="text-align:center">Share</th><th class="r">Amount (BDT)</th></tr>'+funds+'<tr class="tot"><td colspan="2">TOTAL PAID</td><td class="r">BDT '+fm(tot)+'</td></tr></table>'
+ +'<div class="words"><b>Amount in words:</b> '+words(tot)+'</div>'
+ +'<div class="note"><b>Note:</b> Please report any discrepancy to the Foundation within 14 days of this statement. This is a computer-generated statement.</div>'
+ +'<div class="foot"><span>Computer-generated official statement</span><span>HQRA Foundation</span></div></body></html>';
+}
+window.printStatement=function(){var d=D0();if(!d.member){return}var html=stmtHtml(),title='HQRA_Statement_'+((d.member||{}).memberNo||'');if(window.HQRA_PRINT&&window.HQRA_PRINT.printHtml){try{window.HQRA_PRINT.printHtml(html,title);return}catch(e){}}var wd=window.open('','_blank');if(!wd){alert('Print could not be started on this phone.');return}wd.document.open();wd.document.write(html+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},300)}</scr'+'ipt>');wd.document.close()};
+window.hqStmtHtml=stmtHtml;
 })();
 
 </script>
