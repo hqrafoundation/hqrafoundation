@@ -202,7 +202,7 @@ function renderCustomerData(d){
  const sharePaid=Math.max(num(m.sharePaid),shares.reduce((a,x)=>a+num(x.amount),0));
  const duesExpected=num(m.duesExpected);
  const duesDue=(typeof m.duesDue==='number'&&isFinite(m.duesDue))?m.duesDue:Math.max(0,duesExpected-duesPaid);
- const shareDue=Math.max(0,shareTotal-sharePaid);
+ const shareDue=0;/* শেয়ার কিস্তি বন্ধ (লুকানো) */
  const totalDue=duesDue+shareDue;
  const totalPaid=duesPaid+sharePaid;
  const all=[...dues.map(x=>({...x,_kind:'মাসিক জমা'})),...shares.map(x=>({...x,_kind:'শেয়ার কিস্তি'})),...tx.map(x=>({...x,_kind:x.type||x.category||'লেনদেন'}))].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
@@ -211,6 +211,7 @@ function renderCustomerData(d){
  document.getElementById('dashTotalPaid').textContent=taka(totalPaid);
  document.getElementById('dashDuesPaid').textContent=taka(duesPaid);
  document.getElementById('dashSharePaid').textContent=taka(sharePaid);
+ try{var _t=document.getElementById('dashSharePaid').parentElement;_t.style.display='none';_t.parentElement.style.gridTemplateColumns='repeat(2,1fr)';document.getElementById('dashShareValue').style.display='none';var _c=document.getElementById('dashShareDue').closest('.card');if(_c)_c.style.display='none';var _s=document.getElementById('dashShares').closest('.card');if(_s)_s.style.gridColumn='1/-1'}catch(e){}
  document.getElementById('dashTotalDue').textContent=taka(totalDue);
  document.getElementById('dashMonthly').textContent=taka(m.duesAmount);
  document.getElementById('dashNextDate').textContent='পরবর্তী তারিখ: '+(m.nextDuesDate||'-');
@@ -231,10 +232,10 @@ function renderCustomerData(d){
   el.innerHTML=`<div class="section"><div class="section-title"><i></i><h2>নোটিশ</h2></div><div class="card">${nh}</div></div><div class="section"><div class="section-title"><i></i><h2>ফাউন্ডেশনের সাথে যোগাযোগ</h2></div><div class="card">${ch}</div></div>`;
  })();
  document.getElementById('dues').innerHTML=`<div class="section-title"><i></i><h2>জমার হিসাব</h2></div><div class="cards"><div class="card metric"><small>মাসিক জমা</small><b class="green">${taka(m.duesAmount)}</b></div><div class="card metric"><small>মোট প্রদান</small><b class="green">${taka(duesPaid)}</b></div><div class="card metric"><small>বকেয়া</small><b class="red">${taka(duesDue)}</b></div><div class="card metric"><small>পরবর্তী তারিখ</small><b>${safe(m.nextDuesDate||'-')}</b></div></div>${monthTable(d)}<div class="card section"><h2>জমার রেকর্ড</h2>${rows(dues.map(x=>({...x,_kind:'মাসিক জমা'})))}</div>`;
- document.getElementById('shares').innerHTML=`<div class="section-title"><i></i><h2>শেয়ারের হিসাব</h2></div><div class="cards"><div class="card metric"><small>মোট শেয়ার</small><b class="blue">${num(m.shares).toLocaleString('bn-BD')} টি</b></div><div class="card metric"><small>মোট মূল্য</small><b class="gold">${taka(shareTotal)}</b></div><div class="card metric"><small>পরিশোধিত</small><b class="green">${taka(sharePaid)}</b></div><div class="card metric"><small>বকেয়া</small><b class="red">${taka(shareDue)}</b></div></div><div class="card section"><h2>শেয়ার কিস্তির রেকর্ড</h2>${rows(shares.map(x=>({...x,_kind:'শেয়ার কিস্তি'})))}</div>`;
+ document.getElementById('shares').innerHTML=`<div class="section-title"><i></i><h2>শেয়ারের হিসাব</h2></div><div class="cards"><div class="card metric"><small>মোট শেয়ার</small><b class="blue">${num(m.shares).toLocaleString('bn-BD')} টি</b></div><div class="card metric"><small>মাসিক জমা</small><b class="green">${taka(m.duesAmount)}</b></div></div>`;
  document.getElementById('transactions').innerHTML=`<div class="section-title"><i></i><h2>সম্পূর্ণ লেনদেন</h2></div><div class="card"><div class="row"><small>মোট রেকর্ড</small><b>${all.length.toLocaleString('bn-BD')}</b></div><div class="row"><small>মোট পরিশোধ</small><b class="green">${taka(totalPaid)}</b></div></div><div class="card section"><h2>লেনদেনের তালিকা</h2>${rows(all,'এখনো কোনো লেনদেন নেই।')}</div>`;
  const latest=dues[0]||null;
- document.getElementById('profile').innerHTML=`<div class="section-title"><i></i><h2>আমার প্রোফাইল</h2></div><div class="card profile"><div class="avatar">${m.photo&&/^data:image\//.test(m.photo)?`<img src="${m.photo}" style="width:100%;height:100%;object-fit:cover" alt="">`:'👤'}</div><div><h2 style="margin:0 0 5px">${safe(m.name||'-')}</h2><span class="badge">সদস্য সক্রিয়</span><div class="muted" style="margin-top:7px">সদস্য ID: ${safe(m.memberNo||'-')}<br>মোবাইল: ${safe(m.phone||'-')}<br>যোগদানের তারিখ: ${safe(m.joinDate||'-')}</div></div></div><div class="card section"><div class="row"><small>মোট পরিশোধ</small><b class="green">${taka(totalPaid)}</b></div><div class="row"><small>মোট বকেয়া</small><b class="red">${taka(totalDue)}</b></div><div class="row"><small>শেয়ার</small><b>${num(m.shares).toLocaleString('bn-BD')} টি</b></div></div><div class="section"><div class="section-title"><i></i><h2>ডিজিটাল রসিদ</h2></div><div class="receipt"><h3>জমা পরিশোধের রসিদ</h3><div class="rrow"><span>সদস্য</span><b>${safe(m.name||'-')}</b></div><div class="rrow"><span>সদস্য ID</span><b>${safe(m.memberNo||'-')}</b></div><div class="rrow"><span>তারিখ</span><b>${safe(latest?.date||'-')}</b></div><div class="rrow"><span>খাত</span><b>মাসিক জমা</b></div><div class="rrow"><span>পরিমাণ</span><b>${taka(latest?.amount||0)}</b></div><button class="btn" onclick="printReceipt()">🖨️ রসিদ প্রিন্ট</button><div class="print-note">প্রিন্ট মেনুতে “Save as PDF” বেছে PDF রাখতে পারবেন।</div></div></div><div class="card section"><div class="action-row"><button class="btn" onclick="printStatement()">🖨️ স্টেটমেন্ট (PDF)</button><button class="btn outline" onclick="logout()">🚪 লগআউট</button></div></div>`;
+ document.getElementById('profile').innerHTML=`<div class="section-title"><i></i><h2>আমার প্রোফাইল</h2></div><div class="card profile"><div class="avatar">${m.photo&&/^data:image\//.test(m.photo)?`<img src="${m.photo}" style="width:100%;height:100%;object-fit:cover" alt="">`:'👤'}</div><div><h2 style="margin:0 0 5px">${safe(m.name||'-')}</h2><span class="badge">সদস্য সক্রিয়</span><div class="muted" style="margin-top:7px">সদস্য ID: ${safe(m.memberNo||'-')}<br>মোবাইল: ${safe(m.phone||'-')}<br>যোগদানের তারিখ: ${safe(m.joinDate||'-')}</div></div></div><div class="card section"><div class="row"><small>মোট পরিশোধ</small><b class="green">${taka(totalPaid)}</b></div><div class="row"><small>মোট বকেয়া</small><b class="red">${taka(totalDue)}</b></div><div class="row"><small>শেয়ার</small><b>${num(m.shares).toLocaleString('bn-BD')} টি</b></div></div><div class="section"><div class="section-title"><i></i><h2>ডিজিটাল রসিদ</h2></div><div class="receipt"><h3>জমা পরিশোধের রসিদ</h3>${hqRcCard()}<div class="print-note">প্রিন্ট মেনুতে “Save as PDF” বেছে PDF রাখতে পারবেন।</div></div></div><div class="card section"><div class="action-row"><button class="btn" onclick="printStatement()">🖨️ স্টেটমেন্ট (PDF)</button><button class="btn outline" onclick="logout()">🚪 লগআউট</button></div></div>`;
 }
 window.onbeforeprint=()=>document.querySelector('.nav').style.display='none';window.onafterprint=()=>document.querySelector('.nav').style.display='grid';
 
@@ -366,7 +367,7 @@ function renderPay(d,keepForm){
  const el=document.getElementById('pay');if(!el)return;
  const keep={};if(keepForm)['payKind','payAmount','payDate','paySender','payTrx'].forEach(i=>{const x=document.getElementById(i);if(x)keep[i]=x.value});
  const keepM=keepForm?[...document.querySelectorAll('.payMonth:checked')].map(c=>c.value):[];
- const due=payMonthsDue(st),shareDue=Math.max(0,Number(m.shareTotal||0)-Number(m.sharePaid||0));
+ const due=payMonthsDue(st),shareDue=0;
  const PM=pmList(bk),has=PM.length>0;
  let cur=PM.find(x=>x.k===window.HQRA_PM)||PM[0]||{k:'bkash',n:'বিকাশ',num:'',c:'#e2136e',t:''};window.HQRA_PM=cur.k;
  const mh=due.length?due.map(r=>`<label class="mchk"><input type="checkbox" class="payMonth" value="${safe(r.k)}" data-bal="${Number(r.bal)}" onchange="payCalc()"><span>${safe(monthLabel(r.k))} — বকেয়া ${taka(r.bal)}</span></label>`).join(''):'<div class="muted" style="font-size:12px">কোনো মাসের বকেয়া নেই। চাইলে অগ্রিম জমা দিতে পারেন।</div>';
@@ -950,7 +951,7 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
 </script>
 <script id="hqra-update">
 /* নতুন সংস্করণ এলে সদস্যের অ্যাপ নিজে নতুন হয়ে যাবে (লিংক বদলাতে হবে না) */
-window.HQRA_APP_VER="2026-10-25-1534";
+window.HQRA_APP_VER="2026-10-26-0125";
 (function(){
  if(!/^https?:$/.test(location.protocol))return;
  var busy=false;
@@ -970,5 +971,1344 @@ window.HQRA_APP_VER="2026-10-25-1534";
  setTimeout(check,4000);setInterval(check,5*60*1000);
  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')check()});
 })();
+</script>
+<script id="hqra-qr">
+/* HQRA QR — Kazuhiko Arase QRCode (MIT) */
+(function(){var M={},C={};function R(n){n=n.replace(/^\.\//,'');if(C[n])return C[n].exports;var m=C[n]={exports:{}};M[n](m,m.exports,R);return m.exports}
+M['QR8bitByte']=function(module,exports,require){var QRMode = require('./QRMode');
+
+function QR8bitByte(data) {
+	this.mode = QRMode.MODE_8BIT_BYTE;
+	this.data = data;
+}
+
+QR8bitByte.prototype = {
+
+	getLength : function() {
+		return this.data.length;
+	},
+	
+	write : function(buffer) {
+		for (var i = 0; i < this.data.length; i++) {
+			// not JIS ...
+			buffer.put(this.data.charCodeAt(i), 8);
+		}
+	}
+};
+
+module.exports = QR8bitByte;
+
+};
+M['QRMode']=function(module,exports,require){module.exports = {
+    MODE_NUMBER :       1 << 0,
+    MODE_ALPHA_NUM :    1 << 1,
+    MODE_8BIT_BYTE :    1 << 2,
+    MODE_KANJI :        1 << 3
+};
+
+};
+M['QRErrorCorrectLevel']=function(module,exports,require){module.exports = {
+	L : 1,
+	M : 0,
+	Q : 3,
+	H : 2
+};
+
+
+};
+M['QRMaskPattern']=function(module,exports,require){module.exports = {
+	PATTERN000 : 0,
+	PATTERN001 : 1,
+	PATTERN010 : 2,
+	PATTERN011 : 3,
+	PATTERN100 : 4,
+	PATTERN101 : 5,
+	PATTERN110 : 6,
+	PATTERN111 : 7
+};
+
+};
+M['QRMath']=function(module,exports,require){var QRMath = {
+
+	glog : function(n) {
+	
+		if (n < 1) {
+			throw new Error("glog(" + n + ")");
+		}
+		
+		return QRMath.LOG_TABLE[n];
+	},
+	
+	gexp : function(n) {
+	
+		while (n < 0) {
+			n += 255;
+		}
+	
+		while (n >= 256) {
+			n -= 255;
+		}
+	
+		return QRMath.EXP_TABLE[n];
+	},
+	
+	EXP_TABLE : new Array(256),
+	
+	LOG_TABLE : new Array(256)
+
+};
+	
+for (var i = 0; i < 8; i++) {
+	QRMath.EXP_TABLE[i] = 1 << i;
+}
+for (var i = 8; i < 256; i++) {
+	QRMath.EXP_TABLE[i] = QRMath.EXP_TABLE[i - 4]
+		^ QRMath.EXP_TABLE[i - 5]
+		^ QRMath.EXP_TABLE[i - 6]
+		^ QRMath.EXP_TABLE[i - 8];
+}
+for (var i = 0; i < 255; i++) {
+	QRMath.LOG_TABLE[QRMath.EXP_TABLE[i] ] = i;
+}
+
+module.exports = QRMath;
+
+};
+M['QRPolynomial']=function(module,exports,require){var QRMath = require('./QRMath');
+
+function QRPolynomial(num, shift) {
+	if (num.length === undefined) {
+		throw new Error(num.length + "/" + shift);
+	}
+
+	var offset = 0;
+
+	while (offset < num.length && num[offset] === 0) {
+		offset++;
+	}
+
+	this.num = new Array(num.length - offset + shift);
+	for (var i = 0; i < num.length - offset; i++) {
+		this.num[i] = num[i + offset];
+	}
+}
+
+QRPolynomial.prototype = {
+
+	get : function(index) {
+		return this.num[index];
+	},
+	
+	getLength : function() {
+		return this.num.length;
+	},
+	
+	multiply : function(e) {
+	
+		var num = new Array(this.getLength() + e.getLength() - 1);
+	
+		for (var i = 0; i < this.getLength(); i++) {
+			for (var j = 0; j < e.getLength(); j++) {
+				num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i) ) + QRMath.glog(e.get(j) ) );
+			}
+		}
+	
+		return new QRPolynomial(num, 0);
+	},
+	
+	mod : function(e) {
+	
+		if (this.getLength() - e.getLength() < 0) {
+			return this;
+		}
+	
+		var ratio = QRMath.glog(this.get(0) ) - QRMath.glog(e.get(0) );
+	
+		var num = new Array(this.getLength() );
+		
+		for (var i = 0; i < this.getLength(); i++) {
+			num[i] = this.get(i);
+		}
+		
+		for (var x = 0; x < e.getLength(); x++) {
+			num[x] ^= QRMath.gexp(QRMath.glog(e.get(x) ) + ratio);
+		}
+	
+		// recursive call
+		return new QRPolynomial(num, 0).mod(e);
+	}
+};
+
+module.exports = QRPolynomial;
+
+};
+M['QRRSBlock']=function(module,exports,require){var QRErrorCorrectLevel = require('./QRErrorCorrectLevel');
+
+function QRRSBlock(totalCount, dataCount) {
+	this.totalCount = totalCount;
+	this.dataCount  = dataCount;
+}
+
+QRRSBlock.RS_BLOCK_TABLE = [
+
+	// L
+	// M
+	// Q
+	// H
+
+	// 1
+	[1, 26, 19],
+	[1, 26, 16],
+	[1, 26, 13],
+	[1, 26, 9],
+	
+	// 2
+	[1, 44, 34],
+	[1, 44, 28],
+	[1, 44, 22],
+	[1, 44, 16],
+
+	// 3
+	[1, 70, 55],
+	[1, 70, 44],
+	[2, 35, 17],
+	[2, 35, 13],
+
+	// 4		
+	[1, 100, 80],
+	[2, 50, 32],
+	[2, 50, 24],
+	[4, 25, 9],
+	
+	// 5
+	[1, 134, 108],
+	[2, 67, 43],
+	[2, 33, 15, 2, 34, 16],
+	[2, 33, 11, 2, 34, 12],
+	
+	// 6
+	[2, 86, 68],
+	[4, 43, 27],
+	[4, 43, 19],
+	[4, 43, 15],
+	
+	// 7		
+	[2, 98, 78],
+	[4, 49, 31],
+	[2, 32, 14, 4, 33, 15],
+	[4, 39, 13, 1, 40, 14],
+	
+	// 8
+	[2, 121, 97],
+	[2, 60, 38, 2, 61, 39],
+	[4, 40, 18, 2, 41, 19],
+	[4, 40, 14, 2, 41, 15],
+	
+	// 9
+	[2, 146, 116],
+	[3, 58, 36, 2, 59, 37],
+	[4, 36, 16, 4, 37, 17],
+	[4, 36, 12, 4, 37, 13],
+	
+	// 10		
+	[2, 86, 68, 2, 87, 69],
+	[4, 69, 43, 1, 70, 44],
+	[6, 43, 19, 2, 44, 20],
+	[6, 43, 15, 2, 44, 16],
+
+	// 11
+	[4, 101, 81],
+	[1, 80, 50, 4, 81, 51],
+	[4, 50, 22, 4, 51, 23],
+	[3, 36, 12, 8, 37, 13],
+
+	// 12
+	[2, 116, 92, 2, 117, 93],
+	[6, 58, 36, 2, 59, 37],
+	[4, 46, 20, 6, 47, 21],
+	[7, 42, 14, 4, 43, 15],
+
+	// 13
+	[4, 133, 107],
+	[8, 59, 37, 1, 60, 38],
+	[8, 44, 20, 4, 45, 21],
+	[12, 33, 11, 4, 34, 12],
+
+	// 14
+	[3, 145, 115, 1, 146, 116],
+	[4, 64, 40, 5, 65, 41],
+	[11, 36, 16, 5, 37, 17],
+	[11, 36, 12, 5, 37, 13],
+
+	// 15
+	[5, 109, 87, 1, 110, 88],
+	[5, 65, 41, 5, 66, 42],
+	[5, 54, 24, 7, 55, 25],
+	[11, 36, 12],
+
+	// 16
+	[5, 122, 98, 1, 123, 99],
+	[7, 73, 45, 3, 74, 46],
+	[15, 43, 19, 2, 44, 20],
+	[3, 45, 15, 13, 46, 16],
+
+	// 17
+	[1, 135, 107, 5, 136, 108],
+	[10, 74, 46, 1, 75, 47],
+	[1, 50, 22, 15, 51, 23],
+	[2, 42, 14, 17, 43, 15],
+
+	// 18
+	[5, 150, 120, 1, 151, 121],
+	[9, 69, 43, 4, 70, 44],
+	[17, 50, 22, 1, 51, 23],
+	[2, 42, 14, 19, 43, 15],
+
+	// 19
+	[3, 141, 113, 4, 142, 114],
+	[3, 70, 44, 11, 71, 45],
+	[17, 47, 21, 4, 48, 22],
+	[9, 39, 13, 16, 40, 14],
+
+	// 20
+	[3, 135, 107, 5, 136, 108],
+	[3, 67, 41, 13, 68, 42],
+	[15, 54, 24, 5, 55, 25],
+	[15, 43, 15, 10, 44, 16],
+
+	// 21
+	[4, 144, 116, 4, 145, 117],
+	[17, 68, 42],
+	[17, 50, 22, 6, 51, 23],
+	[19, 46, 16, 6, 47, 17],
+
+	// 22
+	[2, 139, 111, 7, 140, 112],
+	[17, 74, 46],
+	[7, 54, 24, 16, 55, 25],
+	[34, 37, 13],
+
+	// 23
+	[4, 151, 121, 5, 152, 122],
+	[4, 75, 47, 14, 76, 48],
+	[11, 54, 24, 14, 55, 25],
+	[16, 45, 15, 14, 46, 16],
+
+	// 24
+	[6, 147, 117, 4, 148, 118],
+	[6, 73, 45, 14, 74, 46],
+	[11, 54, 24, 16, 55, 25],
+	[30, 46, 16, 2, 47, 17],
+
+	// 25
+	[8, 132, 106, 4, 133, 107],
+	[8, 75, 47, 13, 76, 48],
+	[7, 54, 24, 22, 55, 25],
+	[22, 45, 15, 13, 46, 16],
+
+	// 26
+	[10, 142, 114, 2, 143, 115],
+	[19, 74, 46, 4, 75, 47],
+	[28, 50, 22, 6, 51, 23],
+	[33, 46, 16, 4, 47, 17],
+
+	// 27
+	[8, 152, 122, 4, 153, 123],
+	[22, 73, 45, 3, 74, 46],
+	[8, 53, 23, 26, 54, 24],
+	[12, 45, 15, 28, 46, 16],
+
+	// 28
+	[3, 147, 117, 10, 148, 118],
+	[3, 73, 45, 23, 74, 46],
+	[4, 54, 24, 31, 55, 25],
+	[11, 45, 15, 31, 46, 16],
+
+	// 29
+	[7, 146, 116, 7, 147, 117],
+	[21, 73, 45, 7, 74, 46],
+	[1, 53, 23, 37, 54, 24],
+	[19, 45, 15, 26, 46, 16],
+
+	// 30
+	[5, 145, 115, 10, 146, 116],
+	[19, 75, 47, 10, 76, 48],
+	[15, 54, 24, 25, 55, 25],
+	[23, 45, 15, 25, 46, 16],
+
+	// 31
+	[13, 145, 115, 3, 146, 116],
+	[2, 74, 46, 29, 75, 47],
+	[42, 54, 24, 1, 55, 25],
+	[23, 45, 15, 28, 46, 16],
+
+	// 32
+	[17, 145, 115],
+	[10, 74, 46, 23, 75, 47],
+	[10, 54, 24, 35, 55, 25],
+	[19, 45, 15, 35, 46, 16],
+
+	// 33
+	[17, 145, 115, 1, 146, 116],
+	[14, 74, 46, 21, 75, 47],
+	[29, 54, 24, 19, 55, 25],
+	[11, 45, 15, 46, 46, 16],
+
+	// 34
+	[13, 145, 115, 6, 146, 116],
+	[14, 74, 46, 23, 75, 47],
+	[44, 54, 24, 7, 55, 25],
+	[59, 46, 16, 1, 47, 17],
+
+	// 35
+	[12, 151, 121, 7, 152, 122],
+	[12, 75, 47, 26, 76, 48],
+	[39, 54, 24, 14, 55, 25],
+	[22, 45, 15, 41, 46, 16],
+
+	// 36
+	[6, 151, 121, 14, 152, 122],
+	[6, 75, 47, 34, 76, 48],
+	[46, 54, 24, 10, 55, 25],
+	[2, 45, 15, 64, 46, 16],
+
+	// 37
+	[17, 152, 122, 4, 153, 123],
+	[29, 74, 46, 14, 75, 47],
+	[49, 54, 24, 10, 55, 25],
+	[24, 45, 15, 46, 46, 16],
+
+	// 38
+	[4, 152, 122, 18, 153, 123],
+	[13, 74, 46, 32, 75, 47],
+	[48, 54, 24, 14, 55, 25],
+	[42, 45, 15, 32, 46, 16],
+
+	// 39
+	[20, 147, 117, 4, 148, 118],
+	[40, 75, 47, 7, 76, 48],
+	[43, 54, 24, 22, 55, 25],
+	[10, 45, 15, 67, 46, 16],
+
+	// 40
+	[19, 148, 118, 6, 149, 119],
+	[18, 75, 47, 31, 76, 48],
+	[34, 54, 24, 34, 55, 25],
+	[20, 45, 15, 61, 46, 16]
+];
+
+QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectLevel) {
+	
+	var rsBlock = QRRSBlock.getRsBlockTable(typeNumber, errorCorrectLevel);
+	
+	if (rsBlock === undefined) {
+		throw new Error("bad rs block @ typeNumber:" + typeNumber + "/errorCorrectLevel:" + errorCorrectLevel);
+	}
+
+	var length = rsBlock.length / 3;
+	
+	var list = [];
+	
+	for (var i = 0; i < length; i++) {
+
+		var count = rsBlock[i * 3 + 0];
+		var totalCount = rsBlock[i * 3 + 1];
+		var dataCount  = rsBlock[i * 3 + 2];
+
+		for (var j = 0; j < count; j++) {
+			list.push(new QRRSBlock(totalCount, dataCount) );	
+		}
+	}
+	
+	return list;
+};
+
+QRRSBlock.getRsBlockTable = function(typeNumber, errorCorrectLevel) {
+
+	switch(errorCorrectLevel) {
+	case QRErrorCorrectLevel.L :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+	case QRErrorCorrectLevel.M :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+	case QRErrorCorrectLevel.Q :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+	case QRErrorCorrectLevel.H :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+	default :
+		return undefined;
+	}
+};
+
+module.exports = QRRSBlock;
+
+};
+M['QRBitBuffer']=function(module,exports,require){function QRBitBuffer() {
+	this.buffer = [];
+	this.length = 0;
+}
+
+QRBitBuffer.prototype = {
+
+	get : function(index) {
+		var bufIndex = Math.floor(index / 8);
+		return ( (this.buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+	},
+	
+	put : function(num, length) {
+		for (var i = 0; i < length; i++) {
+			this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+		}
+	},
+	
+	getLengthInBits : function() {
+		return this.length;
+	},
+	
+	putBit : function(bit) {
+	
+		var bufIndex = Math.floor(this.length / 8);
+		if (this.buffer.length <= bufIndex) {
+			this.buffer.push(0);
+		}
+	
+		if (bit) {
+			this.buffer[bufIndex] |= (0x80 >>> (this.length % 8) );
+		}
+	
+		this.length++;
+	}
+};
+
+module.exports = QRBitBuffer;
+
+};
+M['QRUtil']=function(module,exports,require){var QRMode = require('./QRMode');
+var QRPolynomial = require('./QRPolynomial');
+var QRMath = require('./QRMath');
+var QRMaskPattern = require('./QRMaskPattern');
+
+var QRUtil = {
+
+    PATTERN_POSITION_TABLE : [
+        [],
+        [6, 18],
+        [6, 22],
+        [6, 26],
+        [6, 30],
+        [6, 34],
+        [6, 22, 38],
+        [6, 24, 42],
+        [6, 26, 46],
+        [6, 28, 50],
+        [6, 30, 54],        
+        [6, 32, 58],
+        [6, 34, 62],
+        [6, 26, 46, 66],
+        [6, 26, 48, 70],
+        [6, 26, 50, 74],
+        [6, 30, 54, 78],
+        [6, 30, 56, 82],
+        [6, 30, 58, 86],
+        [6, 34, 62, 90],
+        [6, 28, 50, 72, 94],
+        [6, 26, 50, 74, 98],
+        [6, 30, 54, 78, 102],
+        [6, 28, 54, 80, 106],
+        [6, 32, 58, 84, 110],
+        [6, 30, 58, 86, 114],
+        [6, 34, 62, 90, 118],
+        [6, 26, 50, 74, 98, 122],
+        [6, 30, 54, 78, 102, 126],
+        [6, 26, 52, 78, 104, 130],
+        [6, 30, 56, 82, 108, 134],
+        [6, 34, 60, 86, 112, 138],
+        [6, 30, 58, 86, 114, 142],
+        [6, 34, 62, 90, 118, 146],
+        [6, 30, 54, 78, 102, 126, 150],
+        [6, 24, 50, 76, 102, 128, 154],
+        [6, 28, 54, 80, 106, 132, 158],
+        [6, 32, 58, 84, 110, 136, 162],
+        [6, 26, 54, 82, 110, 138, 166],
+        [6, 30, 58, 86, 114, 142, 170]
+    ],
+
+    G15 : (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0),
+    G18 : (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0),
+    G15_MASK : (1 << 14) | (1 << 12) | (1 << 10)    | (1 << 4) | (1 << 1),
+
+    getBCHTypeInfo : function(data) {
+        var d = data << 10;
+        while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+            d ^= (QRUtil.G15 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) ) );    
+        }
+        return ( (data << 10) | d) ^ QRUtil.G15_MASK;
+    },
+
+    getBCHTypeNumber : function(data) {
+        var d = data << 12;
+        while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) >= 0) {
+            d ^= (QRUtil.G18 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) ) );    
+        }
+        return (data << 12) | d;
+    },
+
+    getBCHDigit : function(data) {
+
+        var digit = 0;
+
+        while (data !== 0) {
+            digit++;
+            data >>>= 1;
+        }
+
+        return digit;
+    },
+
+    getPatternPosition : function(typeNumber) {
+        return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1];
+    },
+
+    getMask : function(maskPattern, i, j) {
+        
+        switch (maskPattern) {
+            
+        case QRMaskPattern.PATTERN000 : return (i + j) % 2 === 0;
+        case QRMaskPattern.PATTERN001 : return i % 2 === 0;
+        case QRMaskPattern.PATTERN010 : return j % 3 === 0;
+        case QRMaskPattern.PATTERN011 : return (i + j) % 3 === 0;
+        case QRMaskPattern.PATTERN100 : return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 === 0;
+        case QRMaskPattern.PATTERN101 : return (i * j) % 2 + (i * j) % 3 === 0;
+        case QRMaskPattern.PATTERN110 : return ( (i * j) % 2 + (i * j) % 3) % 2 === 0;
+        case QRMaskPattern.PATTERN111 : return ( (i * j) % 3 + (i + j) % 2) % 2 === 0;
+
+        default :
+            throw new Error("bad maskPattern:" + maskPattern);
+        }
+    },
+
+    getErrorCorrectPolynomial : function(errorCorrectLength) {
+
+        var a = new QRPolynomial([1], 0);
+
+        for (var i = 0; i < errorCorrectLength; i++) {
+            a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0) );
+        }
+
+        return a;
+    },
+
+    getLengthInBits : function(mode, type) {
+
+        if (1 <= type && type < 10) {
+
+            // 1 - 9
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 10;
+            case QRMode.MODE_ALPHA_NUM  : return 9;
+            case QRMode.MODE_8BIT_BYTE  : return 8;
+            case QRMode.MODE_KANJI      : return 8;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else if (type < 27) {
+
+            // 10 - 26
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 12;
+            case QRMode.MODE_ALPHA_NUM  : return 11;
+            case QRMode.MODE_8BIT_BYTE  : return 16;
+            case QRMode.MODE_KANJI      : return 10;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else if (type < 41) {
+
+            // 27 - 40
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 14;
+            case QRMode.MODE_ALPHA_NUM  : return 13;
+            case QRMode.MODE_8BIT_BYTE  : return 16;
+            case QRMode.MODE_KANJI      : return 12;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else {
+            throw new Error("type:" + type);
+        }
+    },
+
+    getLostPoint : function(qrCode) {
+        
+        var moduleCount = qrCode.getModuleCount();
+        var lostPoint = 0;
+        var row = 0; 
+        var col = 0;
+
+        
+        // LEVEL1
+        
+        for (row = 0; row < moduleCount; row++) {
+
+            for (col = 0; col < moduleCount; col++) {
+
+                var sameCount = 0;
+                var dark = qrCode.isDark(row, col);
+
+                for (var r = -1; r <= 1; r++) {
+
+                    if (row + r < 0 || moduleCount <= row + r) {
+                        continue;
+                    }
+
+                    for (var c = -1; c <= 1; c++) {
+
+                        if (col + c < 0 || moduleCount <= col + c) {
+                            continue;
+                        }
+
+                        if (r === 0 && c === 0) {
+                            continue;
+                        }
+
+                        if (dark === qrCode.isDark(row + r, col + c) ) {
+                            sameCount++;
+                        }
+                    }
+                }
+
+                if (sameCount > 5) {
+                    lostPoint += (3 + sameCount - 5);
+                }
+            }
+        }
+
+        // LEVEL2
+
+        for (row = 0; row < moduleCount - 1; row++) {
+            for (col = 0; col < moduleCount - 1; col++) {
+                var count = 0;
+                if (qrCode.isDark(row,     col    ) ) count++;
+                if (qrCode.isDark(row + 1, col    ) ) count++;
+                if (qrCode.isDark(row,     col + 1) ) count++;
+                if (qrCode.isDark(row + 1, col + 1) ) count++;
+                if (count === 0 || count === 4) {
+                    lostPoint += 3;
+                }
+            }
+        }
+
+        // LEVEL3
+
+        for (row = 0; row < moduleCount; row++) {
+            for (col = 0; col < moduleCount - 6; col++) {
+                if (qrCode.isDark(row, col) && 
+                        !qrCode.isDark(row, col + 1) && 
+                         qrCode.isDark(row, col + 2) && 
+                         qrCode.isDark(row, col + 3) && 
+                         qrCode.isDark(row, col + 4) && 
+                        !qrCode.isDark(row, col + 5) && 
+                         qrCode.isDark(row, col + 6) ) {
+                    lostPoint += 40;
+                }
+            }
+        }
+
+        for (col = 0; col < moduleCount; col++) {
+            for (row = 0; row < moduleCount - 6; row++) {
+                if (qrCode.isDark(row, col) &&
+                        !qrCode.isDark(row + 1, col) &&
+                         qrCode.isDark(row + 2, col) &&
+                         qrCode.isDark(row + 3, col) &&
+                         qrCode.isDark(row + 4, col) &&
+                        !qrCode.isDark(row + 5, col) &&
+                         qrCode.isDark(row + 6, col) ) {
+                    lostPoint += 40;
+                }
+            }
+        }
+
+        // LEVEL4
+        
+        var darkCount = 0;
+
+        for (col = 0; col < moduleCount; col++) {
+            for (row = 0; row < moduleCount; row++) {
+                if (qrCode.isDark(row, col) ) {
+                    darkCount++;
+                }
+            }
+        }
+        
+        var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+        lostPoint += ratio * 10;
+
+        return lostPoint;       
+    }
+
+};
+
+module.exports = QRUtil;
+
+};
+M['index']=function(module,exports,require){//---------------------------------------------------------------------
+// QRCode for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//   http://www.opensource.org/licenses/mit-license.php
+//
+// The word "QR Code" is registered trademark of 
+// DENSO WAVE INCORPORATED
+//   http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+// Modified to work in node for this project (and some refactoring)
+//---------------------------------------------------------------------
+
+var QR8bitByte = require('./QR8bitByte');
+var QRUtil = require('./QRUtil');
+var QRPolynomial = require('./QRPolynomial');
+var QRRSBlock = require('./QRRSBlock');
+var QRBitBuffer = require('./QRBitBuffer');
+
+function QRCode(typeNumber, errorCorrectLevel) {
+	this.typeNumber = typeNumber;
+	this.errorCorrectLevel = errorCorrectLevel;
+	this.modules = null;
+	this.moduleCount = 0;
+	this.dataCache = null;
+	this.dataList = [];
+}
+
+QRCode.prototype = {
+	
+	addData : function(data) {
+		var newData = new QR8bitByte(data);
+		this.dataList.push(newData);
+		this.dataCache = null;
+	},
+	
+	isDark : function(row, col) {
+		if (row < 0 || this.moduleCount <= row || col < 0 || this.moduleCount <= col) {
+			throw new Error(row + "," + col);
+		}
+		return this.modules[row][col];
+	},
+
+	getModuleCount : function() {
+		return this.moduleCount;
+	},
+	
+	make : function() {
+		// Calculate automatically typeNumber if provided is < 1
+		if (this.typeNumber < 1 ){
+			var typeNumber = 1;
+			for (typeNumber = 1; typeNumber < 40; typeNumber++) {
+				var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, this.errorCorrectLevel);
+
+				var buffer = new QRBitBuffer();
+				var totalDataCount = 0;
+				for (var i = 0; i < rsBlocks.length; i++) {
+					totalDataCount += rsBlocks[i].dataCount;
+				}
+
+				for (var x = 0; x < this.dataList.length; x++) {
+					var data = this.dataList[x];
+					buffer.put(data.mode, 4);
+					buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+					data.write(buffer);
+				}
+				if (buffer.getLengthInBits() <= totalDataCount * 8)
+					break;
+			}
+			this.typeNumber = typeNumber;
+		}
+		this.makeImpl(false, this.getBestMaskPattern() );
+	},
+	
+	makeImpl : function(test, maskPattern) {
+		
+		this.moduleCount = this.typeNumber * 4 + 17;
+		this.modules = new Array(this.moduleCount);
+		
+		for (var row = 0; row < this.moduleCount; row++) {
+			
+			this.modules[row] = new Array(this.moduleCount);
+			
+			for (var col = 0; col < this.moduleCount; col++) {
+				this.modules[row][col] = null;//(col + row) % 3;
+			}
+		}
+	
+		this.setupPositionProbePattern(0, 0);
+		this.setupPositionProbePattern(this.moduleCount - 7, 0);
+		this.setupPositionProbePattern(0, this.moduleCount - 7);
+		this.setupPositionAdjustPattern();
+		this.setupTimingPattern();
+		this.setupTypeInfo(test, maskPattern);
+		
+		if (this.typeNumber >= 7) {
+			this.setupTypeNumber(test);
+		}
+	
+		if (this.dataCache === null) {
+			this.dataCache = QRCode.createData(this.typeNumber, this.errorCorrectLevel, this.dataList);
+		}
+	
+		this.mapData(this.dataCache, maskPattern);
+	},
+
+	setupPositionProbePattern : function(row, col)  {
+		
+		for (var r = -1; r <= 7; r++) {
+			
+			if (row + r <= -1 || this.moduleCount <= row + r) continue;
+			
+			for (var c = -1; c <= 7; c++) {
+				
+				if (col + c <= -1 || this.moduleCount <= col + c) continue;
+				
+				if ( (0 <= r && r <= 6 && (c === 0 || c === 6) ) || 
+                     (0 <= c && c <= 6 && (r === 0 || r === 6) ) || 
+                     (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+					this.modules[row + r][col + c] = true;
+				} else {
+					this.modules[row + r][col + c] = false;
+				}
+			}		
+		}		
+	},
+	
+	getBestMaskPattern : function() {
+	
+		var minLostPoint = 0;
+		var pattern = 0;
+	
+		for (var i = 0; i < 8; i++) {
+			
+			this.makeImpl(true, i);
+	
+			var lostPoint = QRUtil.getLostPoint(this);
+	
+			if (i === 0 || minLostPoint >  lostPoint) {
+				minLostPoint = lostPoint;
+				pattern = i;
+			}
+		}
+	
+		return pattern;
+	},
+	
+	createMovieClip : function(target_mc, instance_name, depth) {
+	
+		var qr_mc = target_mc.createEmptyMovieClip(instance_name, depth);
+		var cs = 1;
+	
+		this.make();
+
+		for (var row = 0; row < this.modules.length; row++) {
+			
+			var y = row * cs;
+			
+			for (var col = 0; col < this.modules[row].length; col++) {
+	
+				var x = col * cs;
+				var dark = this.modules[row][col];
+			
+				if (dark) {
+					qr_mc.beginFill(0, 100);
+					qr_mc.moveTo(x, y);
+					qr_mc.lineTo(x + cs, y);
+					qr_mc.lineTo(x + cs, y + cs);
+					qr_mc.lineTo(x, y + cs);
+					qr_mc.endFill();
+				}
+			}
+		}
+		
+		return qr_mc;
+	},
+
+	setupTimingPattern : function() {
+		
+		for (var r = 8; r < this.moduleCount - 8; r++) {
+			if (this.modules[r][6] !== null) {
+				continue;
+			}
+			this.modules[r][6] = (r % 2 === 0);
+		}
+	
+		for (var c = 8; c < this.moduleCount - 8; c++) {
+			if (this.modules[6][c] !== null) {
+				continue;
+			}
+			this.modules[6][c] = (c % 2 === 0);
+		}
+	},
+	
+	setupPositionAdjustPattern : function() {
+	
+		var pos = QRUtil.getPatternPosition(this.typeNumber);
+		
+		for (var i = 0; i < pos.length; i++) {
+		
+			for (var j = 0; j < pos.length; j++) {
+			
+				var row = pos[i];
+				var col = pos[j];
+				
+				if (this.modules[row][col] !== null) {
+					continue;
+				}
+				
+				for (var r = -2; r <= 2; r++) {
+				
+					for (var c = -2; c <= 2; c++) {
+					
+						if (Math.abs(r) === 2 || 
+                            Math.abs(c) === 2 ||
+                            (r === 0 && c === 0) ) {
+							this.modules[row + r][col + c] = true;
+						} else {
+							this.modules[row + r][col + c] = false;
+						}
+					}
+				}
+			}
+		}
+	},
+	
+	setupTypeNumber : function(test) {
+	
+		var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+        var mod;
+	
+		for (var i = 0; i < 18; i++) {
+			mod = (!test && ( (bits >> i) & 1) === 1);
+			this.modules[Math.floor(i / 3)][i % 3 + this.moduleCount - 8 - 3] = mod;
+		}
+	
+		for (var x = 0; x < 18; x++) {
+			mod = (!test && ( (bits >> x) & 1) === 1);
+			this.modules[x % 3 + this.moduleCount - 8 - 3][Math.floor(x / 3)] = mod;
+		}
+	},
+	
+	setupTypeInfo : function(test, maskPattern) {
+	
+		var data = (this.errorCorrectLevel << 3) | maskPattern;
+		var bits = QRUtil.getBCHTypeInfo(data);
+        var mod;
+	
+		// vertical		
+		for (var v = 0; v < 15; v++) {
+	
+			mod = (!test && ( (bits >> v) & 1) === 1);
+	
+			if (v < 6) {
+				this.modules[v][8] = mod;
+			} else if (v < 8) {
+				this.modules[v + 1][8] = mod;
+			} else {
+				this.modules[this.moduleCount - 15 + v][8] = mod;
+			}
+		}
+	
+		// horizontal
+		for (var h = 0; h < 15; h++) {
+	
+			mod = (!test && ( (bits >> h) & 1) === 1);
+			
+			if (h < 8) {
+				this.modules[8][this.moduleCount - h - 1] = mod;
+			} else if (h < 9) {
+				this.modules[8][15 - h - 1 + 1] = mod;
+			} else {
+				this.modules[8][15 - h - 1] = mod;
+			}
+		}
+	
+		// fixed module
+		this.modules[this.moduleCount - 8][8] = (!test);
+	
+	},
+	
+	mapData : function(data, maskPattern) {
+		
+		var inc = -1;
+		var row = this.moduleCount - 1;
+		var bitIndex = 7;
+		var byteIndex = 0;
+		
+		for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+	
+			if (col === 6) col--;
+	
+			while (true) {
+	
+				for (var c = 0; c < 2; c++) {
+					
+					if (this.modules[row][col - c] === null) {
+						
+						var dark = false;
+	
+						if (byteIndex < data.length) {
+							dark = ( ( (data[byteIndex] >>> bitIndex) & 1) === 1);
+						}
+	
+						var mask = QRUtil.getMask(maskPattern, row, col - c);
+	
+						if (mask) {
+							dark = !dark;
+						}
+						
+						this.modules[row][col - c] = dark;
+						bitIndex--;
+	
+						if (bitIndex === -1) {
+							byteIndex++;
+							bitIndex = 7;
+						}
+					}
+				}
+								
+				row += inc;
+	
+				if (row < 0 || this.moduleCount <= row) {
+					row -= inc;
+					inc = -inc;
+					break;
+				}
+			}
+		}
+		
+	}
+
+};
+
+QRCode.PAD0 = 0xEC;
+QRCode.PAD1 = 0x11;
+
+QRCode.createData = function(typeNumber, errorCorrectLevel, dataList) {
+	
+	var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectLevel);
+	
+	var buffer = new QRBitBuffer();
+	
+	for (var i = 0; i < dataList.length; i++) {
+		var data = dataList[i];
+		buffer.put(data.mode, 4);
+		buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+		data.write(buffer);
+	}
+
+	// calc num max data.
+	var totalDataCount = 0;
+	for (var x = 0; x < rsBlocks.length; x++) {
+		totalDataCount += rsBlocks[x].dataCount;
+	}
+
+	if (buffer.getLengthInBits() > totalDataCount * 8) {
+		throw new Error("code length overflow. (" + 
+            buffer.getLengthInBits() + 
+            ">" +  
+            totalDataCount * 8 + 
+            ")");
+	}
+
+	// end code
+	if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+		buffer.put(0, 4);
+	}
+
+	// padding
+	while (buffer.getLengthInBits() % 8 !== 0) {
+		buffer.putBit(false);
+	}
+
+	// padding
+	while (true) {
+		
+		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+			break;
+		}
+		buffer.put(QRCode.PAD0, 8);
+		
+		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+			break;
+		}
+		buffer.put(QRCode.PAD1, 8);
+	}
+
+	return QRCode.createBytes(buffer, rsBlocks);
+};
+
+QRCode.createBytes = function(buffer, rsBlocks) {
+
+	var offset = 0;
+	
+	var maxDcCount = 0;
+	var maxEcCount = 0;
+	
+	var dcdata = new Array(rsBlocks.length);
+	var ecdata = new Array(rsBlocks.length);
+	
+	for (var r = 0; r < rsBlocks.length; r++) {
+
+		var dcCount = rsBlocks[r].dataCount;
+		var ecCount = rsBlocks[r].totalCount - dcCount;
+
+		maxDcCount = Math.max(maxDcCount, dcCount);
+		maxEcCount = Math.max(maxEcCount, ecCount);
+		
+		dcdata[r] = new Array(dcCount);
+		
+		for (var i = 0; i < dcdata[r].length; i++) {
+			dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+		}
+		offset += dcCount;
+		
+		var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+		var rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+		var modPoly = rawPoly.mod(rsPoly);
+		ecdata[r] = new Array(rsPoly.getLength() - 1);
+		for (var x = 0; x < ecdata[r].length; x++) {
+            var modIndex = x + modPoly.getLength() - ecdata[r].length;
+			ecdata[r][x] = (modIndex >= 0)? modPoly.get(modIndex) : 0;
+		}
+
+	}
+	
+	var totalCodeCount = 0;
+	for (var y = 0; y < rsBlocks.length; y++) {
+		totalCodeCount += rsBlocks[y].totalCount;
+	}
+
+	var data = new Array(totalCodeCount);
+	var index = 0;
+
+	for (var z = 0; z < maxDcCount; z++) {
+		for (var s = 0; s < rsBlocks.length; s++) {
+			if (z < dcdata[s].length) {
+				data[index++] = dcdata[s][z];
+			}
+		}
+	}
+
+	for (var xx = 0; xx < maxEcCount; xx++) {
+		for (var t = 0; t < rsBlocks.length; t++) {
+			if (xx < ecdata[t].length) {
+				data[index++] = ecdata[t][xx];
+			}
+		}
+	}
+
+	return data;
+
+};
+
+module.exports = QRCode;
+
+};
+var QRCode=R('index'),EC=R('QRErrorCorrectLevel');
+window.HQ_QR=function(text,px){var q=new QRCode(-1,EC.M);q.addData(String(text));q.make();var n=q.getModuleCount(),p=[];for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(q.isDark(r,c))p.push('M'+c+','+r+'h1v1h-1z');return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 '+(n+4)+' '+(n+4)+'" width="'+(px||96)+'" height="'+(px||96)+'" shape-rendering="crispEdges"><rect x="-2" y="-2" width="'+(n+4)+'" height="'+(n+4)+'" fill="#fff"/><path d="'+p.join('')+'" fill="#000"/></svg>'};})();
+/* রসিদের জলছাপ ও QR */
+/* স্বাক্ষর ও যোগাযোগ (রসিদের জন্য) */
+var HQ_SIG_H="data:image/png;base64,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",HQ_SIG_S="data:image/png;base64,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";
+function hqSignRow(l,r){
+  var one=function(img,t){return '<div style="text-align:center"><div style="height:48px;display:flex;align-items:flex-end;justify-content:center"><img src="'+img+'" style="max-height:46px;max-width:92%"></div><div style="border-top:1px solid #555;padding-top:6px;font-size:11px">'+t+'</div></div>'};
+  return '<style>.sign{display:none!important}</style><div class="hqsig" style="display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:26px;page-break-inside:avoid">'+one(HQ_SIG_H,l)+one(HQ_SIG_S,r)+'</div>';
+}
+function hqContactFoot(){
+  var c={};try{c=JSON.parse(localStorage.getItem("hqra_contact_v1")||"{}")||{}}catch(e){}
+  var ph=(c.phone&&String(c.phone).trim())||"+880 1805-526319",em=(c.email&&String(c.email).trim())||"hqrafoundation1226@gmail.com";
+  var e=function(v){return String(v).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})};
+  return '<div style="margin-top:14px;padding-top:8px;border-top:1px solid #d5e0db;text-align:center;font-size:11px;color:#444">📞 '+e(ph)+' &nbsp;|&nbsp; ✉ '+e(em)+'</div>';
+}
+function hqChk(s){var h=0x811c9dc5;s=String(s)+"|HQRA-2026";for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}return ("00000000"+h.toString(16)).slice(-8)}
+function hqWM(logo){return logo?'<div style="position:fixed;left:0;right:0;top:50%;transform:translateY(-50%) rotate(-18deg);text-align:center;z-index:9999;pointer-events:none"><img src="'+logo+'" style="width:64%;max-width:430px;opacity:.085"></div>':''}
+function hqRcptQR(kind,no,memberNo,amount,date){
+  try{
+    var a=String(Math.round(Number(amount)||0)),d=String(date||"").replace(/[^0-9-]/g,"").slice(0,10),mn=String(memberNo||"-").replace(/[^A-Za-z0-9-]/g,"")||"-",n=String(no).replace(/[^A-Za-z0-9-]/g,"");
+    var base=["HQRA",kind,n,mn,a,d].join("|"),payload=base+"|"+hqChk(base);
+    return '<div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:16px;font-size:10px;color:#555;page-break-inside:avoid"><div style="text-align:right;line-height:1.5">কম্পিউটার-জেনারেটেড অফিসিয়াল রসিদ<br>রসিদ কোড: <b>'+n+'</b><br>QR স্ক্যান করে তথ্য মিলিয়ে দেখুন</div><div style="border:1px solid #ccc;padding:2px;background:#fff">'+HQ_QR(payload,92)+'</div></div>';
+  }catch(e){return ""}
+}
+</script>
+<script id="hqra-voucher">
+/* ===== HQRA English voucher (bank-statement style, 4 fund split) ===== */
+(function(){
+var BD='০১২৩৪৫৬৭৮৯';
+function dg(s){return String(s==null?'':s).replace(/[০-৯]/g,function(d){return BD.indexOf(d)})}
+function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function D(v){var x=dg(v).trim();var m=x.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return String(m[3]).padStart(2,'0')+' '+MON[Number(m[2])-1]+' '+m[1];var b=x.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);if(b)return String(b[1]).padStart(2,'0')+' '+MON[Number(b[2])-1]+' '+b[3];return x||'-'}
+var MAP=[['মাসিক সদস্য জমা','Monthly member deposit'],['মাসিক জমা','Monthly Deposit'],['শেয়ার কিস্তি','Share Instalment'],['অন্যান্য','Others'],['অনুদান','Donation'],['দান','Donation'],['বিকাশ','bKash'],['নগদ','Cash'],['ব্যাংক','Bank'],['রকেট','Rocket'],['কিস্তি','Instalment'],['জমা','Deposit']];
+function EN(s){var t=dg(s);t=t.replace(/(\d{4}-\d{2})\s*থেকে\s*(\d{4}-\d{2})\s*পর্যন্ত\s*(\d+)\s*মাসের জমা/g,'Deposits for $3 months ($1 to $2)');MAP.forEach(function(p){t=t.split(p[0]).join(p[1])});t=t.replace(/\bbkash\b/ig,'bKash').replace(/\bnagad\b/ig,'Nagad');return t.replace(/\s+/g,' ').trim()}
+function fm(p){return (p/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+var ON=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],TN=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function w99(n){return n<20?ON[n]:TN[Math.floor(n/10)]+(n%10?'-'+ON[n%10]:'')}
+function w(n){if(n===0)return 'Zero';var o=[],c=Math.floor(n/1e7);n%=1e7;var l=Math.floor(n/1e5);n%=1e5;var t=Math.floor(n/1e3);n%=1e3;var h=Math.floor(n/100);var r=n%100;
+ if(c)o.push(w(c)+' Crore');if(l)o.push(w99(l)+' Lakh');if(t)o.push(w99(t)+' Thousand');if(h)o.push(ON[h]+' Hundred');if(r)o.push(w99(r));return o.join(' ')}
+function words(p){var tk=Math.floor(p/100),ps=p%100;var s=w(tk)+' Taka';if(ps)s+=' and '+w99(ps)+' Paisa';return s+' Only'}
+function split(p){var m=Math.round(p*.4),g=Math.round(p*.4),f=Math.round(p*.1),h=p-m-g-f;return [m,g,f,h]}
+var FUNDS=[['Medical Fund','40%','#2563eb','#e8f0ff'],['General Fund','40%','#059669','#e3f6ee'],['Foundation Management Fund','10%','#d97706','#fff3d9'],['Human Welfare Fund','10%','#db2777','#fde8f1']];
+function contact(){var c={};try{c=((window.HQRA_MEMBER_DATA||{}).statement||{}).contact||{}}catch(e){}return {ph:(c.phone&&String(c.phone).trim())||'+880 1805-526319',em:(c.email&&String(c.email).trim())||'hqrafoundation1226@gmail.com'}}
+function qr(kind,no,mn,amt,date){try{var a=String(Math.round(Number(amt)||0)),d=String(date||'').replace(/[^0-9-]/g,'').slice(0,10),m=String(mn||'-').replace(/[^A-Za-z0-9-]/g,'')||'-',n=String(no).replace(/[^A-Za-z0-9-]/g,'');var base=['HQRA',kind,n,m,a,d].join('|');return HQ_QR(base+'|'+hqChk(base),96)}catch(e){return ''}}
+var CSS='@page{size:A4;margin:9mm}html{zoom:1.45}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#12202b;background:#fff;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
++'.top{background:linear-gradient(100deg,#0b2a4a,#087f5b);color:#fff;padding:12px 14px;border-radius:10px 10px 0 0;display:flex;align-items:center;gap:12px}.top .lg{background:#fff;border-radius:50%;width:58px;height:58px;display:flex;align-items:center;justify-content:center;flex:none}.top .lg img{width:54px;height:54px;object-fit:contain;border-radius:50%}.top h1{white-space:nowrap;margin:0;font-size:20px;letter-spacing:.5px}.top .sub{font-size:11px;color:#bfeede;margin-top:2px;letter-spacing:1px;text-transform:uppercase}.top .ct{margin-left:auto;text-align:right;font-size:10.5px;line-height:1.55;color:#e6fff6}'
++'.band{height:5px;background:linear-gradient(90deg,#2563eb 25%,#059669 25% 50%,#d97706 50% 75%,#db2777 75%)}'
++'.ref{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 4px 6px}.ref table{border-collapse:collapse;font-size:12px}.ref td{padding:2.5px 10px 2.5px 0;vertical-align:top}.ref td.k{color:#087f5b;font-weight:700;white-space:nowrap}.ref .q{text-align:center;font-size:9px;color:#5c6b66;flex:none}.ref .q div.b{border:1px solid #cdd8d3;padding:2px;background:#fff;display:inline-block}'
++'h3{margin:10px 0 4px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#0b2a4a;border-left:4px solid #087f5b;padding-left:7px}'
++'table.t{width:100%;border-collapse:collapse;font-size:12px}table.t td,table.t th{border:1px solid #cdd8d3;padding:6px 8px;text-align:left}table.t th.k,table.t td.k{background:#e7f4ee;color:#065f46;font-weight:700;width:38%}'
++'table.f th{background:#0b2a4a;color:#fff;font-size:11px;letter-spacing:.6px}table.f td.n{font-weight:700}table.f td.r,table.f th.r{text-align:right}table.f td.p{text-align:center;font-weight:700;width:60px}'
++'tr.tot td{background:#0b2a4a;color:#fff;font-weight:800;font-size:14px;border-color:#0b2a4a}tr.tot td.r{font-size:16px;color:#ffe08a}'
++'.words{margin-top:6px;background:#fff7e0;border:1px solid #f1d58a;border-radius:6px;padding:7px 10px;font-size:11.5px}.words b{color:#8a5a00}'
++'.note{margin-top:10px;font-size:10px;color:#4b5a55;border-top:1px dashed #b9c8c1;padding-top:6px}.note b{color:#12202b}'
++'.sig{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:10px;page-break-inside:avoid}.sig div.s{text-align:center}.sig .im{height:46px;display:flex;align-items:flex-end;justify-content:center}.sig img{max-height:44px;max-width:92%}.sig .l{border-top:1.5px solid #0b2a4a;padding-top:4px;font-size:10.5px;font-weight:700;color:#0b2a4a}'
++'.foot{margin-top:10px;background:#087f5b;color:#fff;border-radius:0 0 10px 10px;padding:7px 10px;font-size:10.5px;display:flex;justify-content:space-between}';
+function build(o){
+ var logo=(document.querySelector('#login img')||{}).src||'',c=contact();
+ var rows=o.rows.map(function(r){return '<tr><td class="k">'+E(r[0])+'</td><td>'+E(r[1])+'</td></tr>'}).join('');
+ var sp=split(o.paisa),fund='';
+ if(o.split){fund='<h3>Fund Distribution</h3><table class="t f"><tr><th>Fund</th><th style="text-align:center">Share</th><th class="r">Amount (BDT)</th></tr>'+FUNDS.map(function(f,i){return '<tr style="background:'+f[3]+'"><td class="n" style="border-left:5px solid '+f[2]+';color:'+f[2]+'">'+f[0]+'</td><td class="p">'+f[1]+'</td><td class="r n">'+fm(sp[i])+'</td></tr>'}).join('')+'<tr class="tot"><td colspan="2">TOTAL RECEIVED</td><td class="r">BDT '+fm(o.paisa)+'</td></tr></table>'}
+ else{fund='<table class="t f" style="margin-top:10px"><tr class="tot"><td>TOTAL RECEIVED</td><td class="r" style="text-align:right">BDT '+fm(o.paisa)+'</td></tr></table>'}
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>'+E(o.title)+'</title><style>'+CSS+'</style></head><body>'+hqWM(logo)
+ +'<div class="top"><div class="lg">'+(logo?'<img src="'+logo+'">':'')+'</div><div><h1>HQRA FOUNDATION</h1><div class="sub">'+E(o.heading)+'</div></div><div class="ct">Phone: '+E(c.ph)+'<br>Email: '+E(c.em)+'</div></div><div class="band"></div>'
+ +'<div class="ref"><table><tr><td class="k">Receipt No</td><td><b>'+E(o.no)+'</b></td></tr><tr><td class="k">Date</td><td>'+E(D(o.date))+'</td></tr><tr><td class="k">Received From</td><td>'+E(o.name||'-')+'</td></tr>'+(o.memberNo?'<tr><td class="k">Member ID</td><td>'+E(o.memberNo)+'</td></tr>':'')+'</table><div class="q"><div class="b">'+qr(o.kind,o.code,o.memberNo,o.paisa/100,o.date)+'</div><div>Scan to verify</div></div></div>'
+ +'<h3>Payment Details</h3><table class="t">'+rows+'</table>'+fund
+ +'<div class="words"><b>Amount in words:</b> '+words(o.paisa)+'</div>'
+ +'<div class="note"><b>Note:</b> Please report any discrepancy to the Foundation within 14 days of this receipt. This is a computer-generated receipt.</div>'
+ +'<div class="sig"><div class="s"><div class="im"><img src="'+HQ_SIG_H+'"></div><div class="l">'+E(o.l)+'</div></div><div class="s"><div class="im"><img src="'+HQ_SIG_S+'"></div><div class="l">Authorized Signature</div></div></div>'
+ +'<div class="foot"><span>Computer-generated official receipt</span><span>Page 1 of 1</span></div></body></html>';
+}
+function out(o){var html=build(o),title=(o.title||'HQRA_Receipt').replace(/[\\/:*?"<>|\s]+/g,'_');if(window.HQRA_PRINT&&window.HQRA_PRINT.printHtml){try{window.HQRA_PRINT.printHtml(html,title);return}catch(e){}}var wd=window.open('','_blank');if(!wd){alert('Print could not be started on this phone.');return}wd.document.open();wd.document.write(html+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},300)}</scr'+'ipt>');wd.document.close()}
+
+var P=function(n){return Math.round((Number(n)||0)*100)};
+function D0(){return window.HQRA_MEMBER_DATA||{}}
+function list(){var d=D0(),a=[];(d.dues||[]).forEach(function(x){a.push({k:'D',x:x})});(d.sharePayments||[]).forEach(function(x){a.push({k:'S',x:x})});a.sort(function(p,q){return String(q.x.date||'').localeCompare(String(p.x.date||''))});return a}
+window.hqRcList=list;
+window.hqRcPrint=function(i){var d=D0(),m=d.member||{},a=list();var it=a[i==null?0:i];if(!it){alert('No payment record yet.');return}var x=it.x,code=String(x.id||'').slice(-8)||String(Date.now()).slice(-8);
+ if(it.k==='D'){var rows=[['Category','Monthly Member Deposit'],['Payment Method',EN(x.method||'')||'-']];if(Number(x.advanceAmount))rows.push(['Advance For Coming Months','BDT '+fm(P(x.advanceAmount))]);rows.push(['Description',EN(x.note||'Monthly member deposit')]);
+  out({title:'HQRA_Receipt_'+(m.memberNo||''),heading:'Member Deposit Receipt',kind:'D',no:'HQRA-D-'+code,code:code,date:x.date,name:m.name,memberNo:m.memberNo||'',paisa:P(x.amount),rows:rows,split:true,l:'Received By'})}
+ else{var rows2=[['Category','Share Instalment'],['Instalment',EN(x.schedule||'-')],['Description',EN(x.note||'Share instalment')]];
+  out({title:'HQRA_Share_Receipt_'+(m.memberNo||''),heading:'Share Instalment Receipt',kind:'S',no:'HQRA-S-'+code,code:code,date:x.date,name:m.name,memberNo:m.memberNo||'',paisa:P(x.amount),rows:rows2,split:true,l:'Received By'})}};
+window.printReceipt=function(){window.hqRcPrint(0)};
+window.hqRcCard=function(){var a=list();if(!a.length)return '<div class="rrow"><span>রসিদ</span><b>এখনো কোনো জমার রেকর্ড নেই।</b></div>';
+ var opts=a.map(function(it,i){var x=it.x;return '<option value="'+i+'">'+E(formatDate(x.date))+' • ৳ '+Number(x.amount||0).toLocaleString('en-US')+' • '+(it.k==='D'?'মাসিক জমা':'শেয়ার কিস্তি')+'</option>'}).join('');
+ return '<div class="rrow"><span>পেমেন্ট বেছে নিন</span><select id="rcSel" style="max-width:62%;padding:6px;border-radius:8px;background:#0f1d33;color:#fff;border:1px solid #2c4468">'+opts+'</select></div><button class="btn" onclick="hqRcPrint(document.getElementById(\'rcSel\').value)">🖨️ রসিদ প্রিন্ট (PDF)</button>'};
+function formatDate(v){var x=String(v||'');var m=x.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]+'/'+m[1]:x}
+})();
+
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script></body></html>
