@@ -236,7 +236,7 @@ function renderCustomerData(d){
  document.getElementById('shares').innerHTML=`<div class="section-title"><i></i><h2>শেয়ারের হিসাব</h2></div><div class="cards"><div class="card metric"><small>মোট শেয়ার</small><b class="blue">${num(m.shares).toLocaleString('bn-BD')} টি</b></div><div class="card metric"><small>মাসিক জমা</small><b class="green">${taka(m.duesAmount)}</b></div></div>`;
  document.getElementById('transactions').innerHTML=`<div class="section-title"><i></i><h2>সম্পূর্ণ লেনদেন</h2></div><div class="card"><div class="row"><small>মোট রেকর্ড</small><b>${all.length.toLocaleString('bn-BD')}</b></div><div class="row"><small>মোট পরিশোধ</small><b class="green">${taka(totalPaid)}</b></div></div><div class="card section"><h2>লেনদেনের তালিকা</h2>${rows(all,'এখনো কোনো লেনদেন নেই।')}</div>`;
  const latest=dues[0]||null;
- document.getElementById('profile').innerHTML=`<div class="section-title"><i></i><h2>আমার প্রোফাইল</h2></div><div class="card profile"><div class="avatar">${m.photo&&/^data:image\//.test(m.photo)?`<img src="${m.photo}" style="width:100%;height:100%;object-fit:cover" alt="">`:'👤'}</div><div><h2 style="margin:0 0 5px">${safe(m.name||'-')}</h2><span class="badge">সদস্য সক্রিয়</span><div class="muted" style="margin-top:7px">সদস্য ID: ${safe(m.memberNo||'-')}<br>মোবাইল: ${safe(m.phone||'-')}<br>যোগদানের তারিখ: ${safe(m.joinDate||'-')}</div></div></div><div class="card section"><div class="row"><small>মোট পরিশোধ</small><b class="green">${taka(totalPaid)}</b></div><div class="row"><small>মোট বকেয়া</small><b class="red">${taka(totalDue)}</b></div><div class="row"><small>শেয়ার</small><b>${num(m.shares).toLocaleString('bn-BD')} টি</b></div></div><div class="section"><div class="section-title"><i></i><h2>ডিজিটাল রসিদ</h2></div><div class="receipt"><h3>জমা পরিশোধের রসিদ</h3>${hqRcCard()}<div class="print-note">প্রিন্ট মেনুতে “Save as PDF” বেছে PDF রাখতে পারবেন।</div></div></div><div class="card section"><div class="action-row"><button class="btn" onclick="printStatement()">🖨️ স্টেটমেন্ট (PDF)</button><button class="btn outline" onclick="logout()">🚪 লগআউট</button></div></div>`;
+ document.getElementById('profile').innerHTML=`<div class="section-title"><i></i><h2>আমার প্রোফাইল</h2></div><div class="card profile"><div class="avatar">${m.photo&&/^data:image\//.test(m.photo)?`<img src="${m.photo}" style="width:100%;height:100%;object-fit:cover" alt="">`:'👤'}</div><div><h2 style="margin:0 0 5px">${safe(m.name||'-')}</h2><span class="badge">সদস্য সক্রিয়</span><div class="muted" style="margin-top:7px">সদস্য ID: ${safe(m.memberNo||'-')}<br>মোবাইল: ${safe(m.phone||'-')}<br>যোগদানের তারিখ: ${safe(m.joinDate||'-')}</div></div></div><div class="card section"><div class="row"><small>মোট পরিশোধ</small><b class="green">${taka(totalPaid)}</b></div><div class="row"><small>মোট বকেয়া</small><b class="red">${taka(totalDue)}</b></div><div class="row"><small>শেয়ার</small><b>${num(m.shares).toLocaleString('bn-BD')} টি</b></div></div><div class="section"><div class="section-title"><i></i><h2>ডিজিটাল রসিদ</h2></div><div class="receipt"><h3>জমা পরিশোধের রসিদ</h3>${hqRcCard()}<div class="print-note">প্রিন্ট মেনুতে “Save as PDF” বেছে PDF রাখতে পারবেন।</div></div></div><div class="section"><div class="section-title"><i></i><h2>পাসওয়ার্ড</h2></div><div class="receipt"><button class="btn" onclick="hqPwOpen()">🔑 পাসওয়ার্ড বদলান</button><div id="pwBox"></div></div></div><div class="card section"><div class="action-row"><button class="btn" onclick="printStatement()">🖨️ স্টেটমেন্ট (PDF)</button><button class="btn outline" onclick="logout()">🚪 লগআউট</button></div></div>`;
 }
 window.onbeforeprint=()=>document.querySelector('.nav').style.display='none';window.onafterprint=()=>document.querySelector('.nav').style.display='grid';
 
@@ -294,6 +294,13 @@ const hqraMember=(function(){
    const email=key+'@member.hqra.app';
    const d=await jfetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+API_KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,returnSecureToken:true})});
    sess={key,idToken:d.idToken,refreshToken:d.refreshToken,email};saveSession(key);
+  },
+  async changePassword(oldPw,newPw){
+   if(!sess||!sess.key)throw new Error('NO_SESSION');
+   const email=sess.key+'@member.hqra.app';
+   const a=await jfetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+API_KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:oldPw,returnSecureToken:true})});
+   const d=await jfetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key='+API_KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:a.idToken,password:newPw,returnSecureToken:true})});
+   sess.idToken=d.idToken||a.idToken;if(d.refreshToken)sess.refreshToken=d.refreshToken;saveSession(sess.key);
   },
   loadSession(){try{const s=JSON.parse(localStorage.getItem(SKEY)||'null');if(s&&s.key&&s.refreshToken){sess={key:s.key,refreshToken:s.refreshToken,idToken:''};return s}}catch(e){}return null},
   async refresh(){
@@ -967,7 +974,7 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
 </script>
 <script id="hqra-update">
 /* নতুন সংস্করণ এলে সদস্যের অ্যাপ নিজে নতুন হয়ে যাবে (লিংক বদলাতে হবে না) */
-window.HQRA_APP_VER="2026-10-26-1732";
+window.HQRA_APP_VER="2026-10-26-2314";
 window.hqraDoUpdate=function(){
  try{if(typeof hqraKeepAlive==='function')hqraKeepAlive(120000)}catch(e){}
  try{sessionStorage.setItem('hqra_upd_try',window.__hqLatest||'1');sessionStorage.setItem('hqra_upd_keep',String(Date.now()))}catch(e){}
@@ -2359,5 +2366,17 @@ window.printStatement=function(){var d=D0();if(!d.member){return}var html=stmtHt
 window.hqStmtHtml=stmtHtml;
 })();
 
+</script>
+
+<script id="hqra-pw">
+function hqPwOpen(){var b=document.getElementById('pwBox');if(!b)return;var s='width:100%;padding:10px;margin:6px 0;border-radius:8px;background:#0f1d33;color:#fff;border:1px solid #2c4468;box-sizing:border-box;font-size:15px';
+ b.innerHTML='<input id="pwOld" type="password" placeholder="বর্তমান পাসওয়ার্ড" autocomplete="current-password" style="'+s+'"><input id="pwNew" type="password" placeholder="নতুন পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)" autocomplete="new-password" style="'+s+'"><input id="pwNew2" type="password" placeholder="নতুন পাসওয়ার্ড আবার লিখুন" autocomplete="new-password" style="'+s+'"><button class="btn" id="pwBtn" onclick="hqPwSave()">সেভ করুন</button><div id="pwMsg" style="margin-top:8px;font-size:13px"></div>'}
+async function hqPwSave(){var g=function(i){return document.getElementById(i).value},msg=document.getElementById('pwMsg'),bt=document.getElementById('pwBtn');var o=g('pwOld'),n=g('pwNew'),n2=g('pwNew2');
+ var say=function(t,ok){msg.textContent=t;msg.style.color=ok?'#34d399':'#f87171'};
+ if(!o)return say('বর্তমান পাসওয়ার্ড লিখুন।');if(n.length<6)return say('নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');if(n!==n2)return say('দুই জায়গায় নতুন পাসওয়ার্ড মেলেনি।');if(n===o)return say('নতুন পাসওয়ার্ড আগেরটার মতো হয়ে গেছে।');
+ bt.disabled=true;bt.textContent='হচ্ছে…';
+ try{await hqraMember.changePassword(o,n);say('✅ পাসওয়ার্ড বদলানো হয়েছে। এরপর থেকে নতুনটা দিয়ে ঢুকবেন।',true);['pwOld','pwNew','pwNew2'].forEach(function(i){document.getElementById(i).value=''})}
+ catch(e){var t=String(e.message||e);say(/INVALID_PASSWORD|INVALID_LOGIN|EMAIL_NOT_FOUND/.test(t)?'বর্তমান পাসওয়ার্ড ভুল।':/WEAK_PASSWORD/.test(t)?'নতুন পাসওয়ার্ড খুব দুর্বল।':/TOO_MANY/.test(t)?'অনেকবার ভুল হয়েছে, একটু পরে চেষ্টা করুন।':'ব্যর্থ: '+t)}
+ bt.disabled=false;bt.textContent='সেভ করুন'}
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script></body></html>
