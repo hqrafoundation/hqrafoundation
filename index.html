@@ -981,7 +981,7 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
 </script>
 <script id="hqra-update">
 /* নতুন সংস্করণ এলে সদস্যের অ্যাপ নিজে নতুন হয়ে যাবে (লিংক বদলাতে হবে না) */
-window.HQRA_APP_VER="2026-10-28-0446";
+window.HQRA_APP_VER="2026-10-28-2255";
 window.hqraDoUpdate=function(){
  try{if(typeof hqraKeepAlive==='function')hqraKeepAlive(120000)}catch(e){}
  try{sessionStorage.setItem('hqra_upd_try',window.__hqLatest||'1');sessionStorage.setItem('hqra_upd_keep',String(Date.now()))}catch(e){}
@@ -2318,8 +2318,8 @@ function build(o){setOff(wOff(),o.fr);
  var logo=(document.querySelector('#login img')||{}).src||'',c=contact();
  var rows=o.rows.map(function(r){return '<tr><td class="k">'+E(r[0])+'</td><td>'+E(r[1])+'</td></tr>'}).join('');
  var sp=split(o.paisa),fund='';
- if(o.split){fund='<h3>Fund Distribution</h3><table class="t f"><tr><th>Fund</th><th style="text-align:center">Share</th><th class="r">Amount (BDT)</th></tr>'+FUNDS.map(function(f,i){return '<tr style="background:'+f[3]+'"><td class="n" style="border-left:5px solid '+f[2]+';color:'+f[2]+'">'+f[0]+'</td><td class="p">'+f[1]+'</td><td class="r n">'+fm(sp[i])+'</td></tr>'}).join('')+'<tr class="tot"><td colspan="2">TOTAL RECEIVED</td><td class="r">BDT '+fm(o.paisa)+'</td></tr></table>'}
- else{fund='<table class="t f" style="margin-top:10px"><tr class="tot"><td>TOTAL RECEIVED</td><td class="r" style="text-align:right">BDT '+fm(o.paisa)+'</td></tr></table>'}
+ if(o.split){fund='<h3>Fund Distribution</h3><table class="t f"><tr><th>Fund</th><th style="text-align:center">Share</th><th class="r">Amount (BDT)</th></tr>'+FUNDS.map(function(f,i){return '<tr style="background:'+f[3]+'"><td class="n" style="border-left:5px solid '+f[2]+';color:'+f[2]+'">'+f[0]+'</td><td class="p">'+f[1]+'</td><td class="r n">'+fm(sp[i])+'</td></tr>'}).join('')+'<tr class="tot"><td colspan="2">'+(o.totalLabel||'TOTAL RECEIVED')+'</td><td class="r">BDT '+fm(o.paisa)+'</td></tr></table>'}
+ else{fund='<table class="t f" style="margin-top:10px"><tr class="tot"><td>'+(o.totalLabel||'TOTAL RECEIVED')+'</td><td class="r" style="text-align:right">BDT '+fm(o.paisa)+'</td></tr></table>'}
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>'+E(o.title)+'</title><style>'+CSS+'</style></head><body>'+hqWM(logo)
  +'<div class="top"><div class="lg">'+(logo?'<img src="'+logo+'">':'')+'</div><div><h1>HQRA FOUNDATION</h1><div class="sub">'+E(o.heading)+'</div></div><div class="ct">Phone: '+E(c.ph)+'<br>Email: '+E(c.em)+'</div></div><div class="band"></div>'
  +'<div class="ref"><table><tr><td class="k">Receipt No</td><td><b>'+E(o.no)+'</b></td></tr><tr><td class="k">Date</td><td>'+E(D(o.date))+'</td></tr><tr><td class="k">Received From</td><td>'+E(o.name||'-')+'</td></tr>'+(o.memberNo?'<tr><td class="k">Member ID</td><td>'+E(o.memberNo)+'</td></tr>':'')+'</table><div class="q"><div class="b">'+qr(o.kind,o.code,o.memberNo,o.paisa/100,o.date)+'</div><div>Scan to verify</div></div></div>'
@@ -2334,7 +2334,7 @@ function out(o){var html=build(o),title=(o.title||'HQRA_Receipt').replace(/[\\/:
 var P=function(n){return Math.round((Number(n)||0)*100)};
 function D0(){return window.HQRA_MEMBER_DATA||{}}
 function list(){var d=D0(),a=[];(d.dues||[]).forEach(function(x){a.push({k:'D',x:x})});(d.sharePayments||[]).forEach(function(x){a.push({k:'S',x:x})});a.sort(function(p,q){return String(q.x.date||'').localeCompare(String(p.x.date||''))});return a}
-window.hqRcList=list;
+window.hqRcList=list;window.hqVoucherOut=out;
 window.hqRcPrint=function(i){var d=D0(),m=d.member||{},a=list();var it=a[i==null?0:i];if(!it){alert('No payment record yet.');return}var x=it.x,code=String(x.id||'').slice(-8)||String(Date.now()).slice(-8);
  if(it.k==='D'){var rows=[['Category','Monthly Member Deposit'],['Payment Method',EN(x.method||'')||'-']];if(Number(x.advanceAmount))rows.push(['Advance For Coming Months','BDT '+fm(P(x.advanceAmount))]);rows.push(['Description',EN(x.note||'Monthly member deposit')]);
   out({title:'HQRA_Receipt_'+(m.memberNo||''),heading:'Member Deposit Receipt',kind:'D',no:'HQRA-D-'+code,code:code,date:x.date,name:m.name,memberNo:m.memberNo||'',paisa:P(x.amount),rows:rows,split:true,fr:hqFR(x.months,x.date),l:'Received By'})}
@@ -2451,7 +2451,8 @@ async function hqPwSave(){var g=function(i){return document.getElementById(i).va
 /* ===== আমার ব্যালেন্স, ব্যবসার লাভ ও টাকা উত্তোলন ===== */
 (function(){
 var DOCB='https://firestore.googleapis.com/v1/projects/hqra-foundation/databases/(default)/documents';
-var WD=[],loaded=false;
+var WD=[],loaded=false,RI=[],cfgR=null;
+var EMM={'বিকাশ':'bKash','ব্যাংক':'Bank','নগদ':'Cash'};function enT(x){var d=new Date(x);return isNaN(d)?'-':d.toLocaleString('en-GB',{timeZone:'Asia/Dhaka',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})}function bnT(x){var d=new Date(x);return isNaN(d)?'-':d.toLocaleString('bn-BD',{timeZone:'Asia/Dhaka',day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'})}
 function calc(d){
  var num=function(v){return Number(v||0)},m=(d&&d.member)||{},st=(d&&d.statement)||{},dues=(d&&d.dues)||[],shares=(d&&d.sharePayments)||[];
  var duesPaid=dues.reduce(function(a,x){return a+num(x.amount)},0),sharePaid=Math.max(num(m.sharePaid),shares.reduce(function(a,x){return a+num(x.amount)},0));
@@ -2472,14 +2473,20 @@ function render(){
  +(c.pend?'<div class="rrow"><span>অনুরোধ যাচাইয়ের অপেক্ষায়</span><b>− '+taka(c.pend)+'</b></div>':'')
  +'<div class="fd-sum"><span>তোলার মতো মোট:</span><b>'+taka(c.avail)+'</b></div>'
  +'<button class="btn" style="margin-top:10px" onclick="hqWdOpen()">💸 টাকা তুলতে চাই</button>'
- +(prof.length?'<h3 style="margin:14px 0 4px;font-size:14px">ব্যবসার লাভের তালিকা</h3>'+prof.map(function(p){return '<div class="rrow"><span>'+esc2(p.business||'ব্যবসা')+' <small style="opacity:.7">'+fd2(p.date)+'</small></span><b style="color:#34d399">+ '+taka(p.amount)+'</b></div>'}).join(''):'')
- +(WD.length?'<h3 style="margin:14px 0 4px;font-size:14px">আমার উত্তোলনের অনুরোধ</h3>'+WD.map(function(w){return '<div class="rrow"><span>'+taka(w.amount)+' <small style="opacity:.7">'+fd2(String(w.createdAt||'').slice(0,10))+'</small>'+(w.status==='rejected'&&w.rejectReason?'<br><small style="opacity:.8">কারণ: '+esc2(w.rejectReason)+'</small>':'')+'</span>'+stLabel(w.status)+'</div>'}).join(''):'')
+ +(prof.length?'<h3 style="margin:14px 0 4px;font-size:14px">ব্যবসার লাভের তালিকা</h3>'+prof.map(function(p){var on=RI.indexOf(p.id)>=0;return '<div class="rrow" style="flex-wrap:wrap"><span>'+esc2(p.business||'ব্যবসা')+' <small style="opacity:.7">'+fd2(p.date)+'</small></span><b style="color:#34d399">+ '+taka(p.amount)+'</b>'+(cfgR!==false?'<button class="btn" style="width:100%;margin-top:6px;padding:7px;font-size:12px;'+(on?'background:#0f766e':'background:#334155')+'" onclick="hqRiToggle(\''+esc2(p.id)+'\')">'+(on?'✅ মূল জমায় যোগ করা আছে (বাতিল করতে চাপুন)':'🔁 তুলব না — মূল জমায় যোগ করুন')+'</button>':(on?'<small style="width:100%;opacity:.8">✅ মূল জমায় যোগ করা</small>':''))+'</div>'}).join(''):'')
+ +(WD.length?'<h3 style="margin:14px 0 4px;font-size:14px">আমার উত্তোলনের অনুরোধ</h3>'+WD.map(function(w){return '<div class="rrow" style="flex-wrap:wrap"><span>'+taka(w.amount)+'<br><small style="opacity:.75">অনুরোধ: '+bnT(w.createdAt)+'</small>'+(w.status==='paid'?'<br><small style="opacity:.85">পাঠানো: '+bnT(w.paidAt)+'<br>মাধ্যম: '+esc2(w.payoutMethod||'বিকাশ')+(w.payoutTrx?' • TrxID: '+esc2(w.payoutTrx):'')+'</small>':'')+(w.status==='rejected'&&w.rejectReason?'<br><small style="opacity:.8">কারণ: '+esc2(w.rejectReason)+'</small>':'')+'</span>'+stLabel(w.status)+(w.status==='paid'?'<button class="btn" style="width:100%;margin-top:6px;padding:7px;font-size:12px" onclick="hqWdPrint(\''+esc2(w.id)+'\')">🧾 রসিদ (PDF)</button>':'')+'</div>'}).join(''):'')
  +'<div class="muted" style="font-size:11px;line-height:1.6;margin-top:8px">শুধু ফেরতযোগ্য টাকা (মেডিকেল ও জেনারেল ফান্ডের অংশ) ও ব্যবসার লাভ তোলা যায়। ফাউন্ডেশন পরিচালনা ও মানব কল্যাণের অংশ ফেরতযোগ্য নয়। টাকা বিকাশে পাঠানো হবে।</div></div>'}
 function fd2(v){var x=String(v||''),m=x.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]+'/'+m[1]:x}
 function esc2(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 async function load(){try{var d=await hqraMember.post(DOCB+':runQuery',{structuredQuery:{from:[{collectionId:'hqra_withdrawals'}],where:{fieldFilter:{field:{fieldPath:'loginEmail'},op:'EQUAL',value:{stringValue:hqraMember._sess().email}}}}});
   WD=(Array.isArray(d)?d:[]).filter(function(x){return x.document}).map(function(x){return hqraMember._fromFields(x.document.fields||{})}).sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''))});loaded=true}catch(e){console.warn('wd',e)}
+ try{var r=await fetch(DOCB+'/hqra_config/withdraw',{cache:'no-store'});if(r.ok){var j=await r.json(),f=j.fields||{};cfgR=f.reinvest&&f.reinvest.booleanValue===false?false:true}else cfgR=true}catch(e){cfgR=true}
+ try{var k=hqraMember._sess().key,rd=await hqraMember.post(DOCB+'/hqra_profitReinvest/'+encodeURIComponent(k),undefined,'GET');RI=((rd.fields&&rd.fields.ids&&rd.fields.ids.arrayValue&&rd.fields.ids.arrayValue.values)||[]).map(function(v){return v.stringValue})}catch(e){RI=[]}
  render()}
+window.hqRiToggle=async function(id){var on=RI.indexOf(id)>=0,nx=on?RI.filter(function(x){return x!==id}):RI.concat([id]);
+ if(!confirm(on?'এই লাভ আবার "তোলার মতো লাভ" হিসেবে ফেরত আনবেন?':'এই লাভ তুলবেন না, মূল জমার সাথে যোগ করে রাখবেন? (পরের লাভ ভাগে এটাও ধরা হবে। চাইলে পরে তুলতে পারবেন।)'))return;
+ try{var k=hqraMember._sess().key,st=(window.HQRA_MEMBER_DATA||{}).statement||{};await hqraMember.post(DOCB+'/hqra_profitReinvest/'+encodeURIComponent(k),{fields:{ids:toFsV(nx),name:{stringValue:String(st.name||'')},updatedAt:{stringValue:new Date().toISOString()}}},'PATCH');RI=nx;render()}catch(e){alert(e.status===403?'এই মুহূর্তে এই অপশন বন্ধ আছে।':'সেভ হয়নি, আবার চেষ্টা করুন।')}};
+window.hqWdPrint=function(id){var w=WD.find(function(x){return x.id===id});if(!w||!window.hqVoucherOut)return;var code=String(w.id).slice(-8);hqVoucherOut({title:'HQRA_Withdrawal_'+code,heading:'Member Withdrawal Receipt',kind:'W',no:'HQRA-W-'+code,code:code,date:String(w.paidAt||w.createdAt||'').slice(0,10),name:w.name,memberNo:w.memberNo,paisa:Math.round(Number(w.amount||0)*100),rows:[['Category','Member Withdrawal'],['Requested At',enT(w.createdAt)],['Paid At',enT(w.paidAt)],['Payment Method',EMM[w.payoutMethod||'বিকাশ']||w.payoutMethod],['Sent To',w.bkash||'-'],['Transaction ID',w.payoutTrx||'-']],split:false,totalLabel:'TOTAL PAID',l:'Paid By'})};
 var _rf=renderFunds;renderFunds=function(d){_rf.apply(this,arguments);try{var el=document.getElementById('fundBoard');if(el){var w=document.getElementById('wdBoard');if(!w){w=document.createElement('div');w.id='wdBoard';el.appendChild(w)}render();if(!loaded)load()}}catch(e){console.warn('wdr',e)}};
 function modal(html){var o=document.getElementById('wdBox');if(o)o.remove();o=document.createElement('div');o.id='wdBox';o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px';o.innerHTML='<div style="background:#13233d;color:#fff;border-radius:18px;padding:18px;max-width:380px;width:100%">'+html+'</div>';document.body.appendChild(o)}
 function close(){var o=document.getElementById('wdBox');if(o)o.remove()}
