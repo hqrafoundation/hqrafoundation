@@ -1,4 +1,4 @@
-// HQRA — কার্ড ছাড়া নোটিফিকেশন (GitHub Actions + cron-job.org)
+// HQRA — কার্ড ছাড়া নোটিফিকেশন: GitHub Actions প্রতি ৫ মিনিটে চালায় (Firebase Blaze লাগে না)
 const admin=require('firebase-admin');
 const sa=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT||'{}');
 if(!sa.project_id){console.log('FIREBASE_SERVICE_ACCOUNT সেট করা নেই');process.exit(0)}
@@ -64,11 +64,49 @@ const money=n=>'৳ '+Number(n||0).toLocaleString('en-US');
   for(const d of sts.docs){
     const s=d.data(),ids=(Array.isArray(s.notices)?s.notices:[]).map(n=>String(n.title||'')+'|'+String(n.date||''));
     next[d.id]=ids;
-    if(first)continue;
+    if(first)continue; // প্রথমবার পুরনো নোটিশ পাঠানো হবে না
     const old=new Set(seen[d.id]||[]);const fresh=(Array.isArray(s.notices)?s.notices:[]).filter(n=>!old.has(String(n.title||'')+'|'+String(n.date||'')));
     if(fresh.length){nTitle=String(fresh[fresh.length-1].title||'');const ok=await push(d.id,'নতুন নোটিশ',nTitle);if(ok)nOk++;else if(global.__noTok)nNo++}
   }
   if(nOk+nNo>0)await tg('📢 নতুন নোটিশ: '+nTitle+'\nফোনে পাঠানো হয়েছে: '+nOk+' জন\nনোটিফিকেশন চালু নেই: '+nNo+' জন');
   await stRef.set({notices:next,updatedAt:new Date().toISOString()});
+  // ৪) উত্তোলনের অনুরোধ: নতুন হলে অ্যাডমিনকে টেলিগ্রাম; পরিশোধ/বাতিল হলে সদস্যকে পুশ
+  const ws=await db.collection('hqra_withdrawals').where('createdAt','>',since).get();
+  for(const doc of ws.docs){
+    const w=doc.data(),upd={};
+    if(w.status==='pending'&&!w.tgNew){await tg('💸 টাকা তোলার অনুরোধ\n'+(w.name||'')+' ('+(w.memberNo||'')+')\n'+money(w.amount)+'\nবিকাশ: '+(w.bkash||''));upd.tgNew=true}
+    if((w.status==='paid'||w.status==='rejected')&&w.notifiedStatus!==w.status){
+      if(w.status==='paid')await push(w.memberKey,'✅ টাকা পাঠানো হয়েছে',money(w.amount)+' আপনাকে '+(w.payoutMethod||'বিকাশ')+'-এ পাঠানো হয়েছে।');
+      else await push(w.memberKey,'❌ উত্তোলনের অনুরোধ গ্রহণ হয়নি',(w.rejectReason||'অ্যাডমিনের সাথে যোগাযোগ করুন।'));
+      upd.notifiedStatus=w.status;
+    }
+    if(Object.keys(upd).length)await doc.ref.update(upd);
+  }
+  // ৫) ফাউন্ডেশনের Gmail থেকে রসিদ ইমেইল (GMAIL_USER ও GMAIL_APP_PASSWORD সেট থাকলে)
+  if(process.env.GMAIL_USER&&process.env.GMAIL_APP_PASSWORD){
+    const mq=await db.collection('hqra_mailQueue').where('status','==','pending').limit(20).get();
+    if(!mq.empty){
+      const nm=require('nodemailer');
+      const tr=nm.createTransport({service:'gmail',auth:{user:process.env.GMAIL_USER,pass:process.env.GMAIL_APP_PASSWORD}});
+      for(const doc of mq.docs){
+        const x=doc.data();
+        try{await tr.sendMail({from:'HQRA Foundation <'+process.env.GMAIL_USER+'>',to:x.to,subject:x.subject,text:x.text,html:x.html});
+          await doc.ref.update({status:'sent',sentAt:new Date().toISOString(),html:'',text:''});console.log('ইমেইল গেছে: '+x.to)}
+        catch(e){await doc.ref.update({status:'failed',error:String(e.message).slice(0,200)});await tg('⚠️ ইমেইল যায়নি: '+x.to+'\n'+String(e.message).slice(0,150))}
+      }
+    }
+  }
+  // ৬) প্রতি মাসের ১২ তারিখের পর একবার: বকেয়া থাকা সদস্যদের পুশ
+  try{
+    const bd=new Date(Date.now()+6*36e5),day=bd.getUTCDate(),mon=bd.toISOString().slice(0,7);
+    const rs=db.collection('hqra_pushState').doc('dueRemind'),rd=await rs.get();
+    if(day>=12&&(!rd.exists||rd.data().month!==mon)){
+      let sent=0,skip=0;
+      for(const d of sts.docs){const s=d.data(),due=Number(s.duesDue||0);if(due>0){const ok=await push(d.id,'⏰ মাসিক জমা বকেয়া',money(due)+' বকেয়া আছে। অ্যাপ থেকে বিকাশে জমা দিতে পারবেন।');if(ok)sent++;else skip++}}
+      await tg('⏰ বকেয়া মনে করানো পাঠানো হয়েছে: '+sent+' জন (নোটিফিকেশন বন্ধ: '+skip+' জন)');
+      await rs.set({month:mon,sent,skip,at:new Date().toISOString()});
+    }
+  }catch(e){console.log('বকেয়া: '+e.message)}
   console.log('ok');
 })().catch(e=>{console.error(e);process.exit(1)});
+                                                                   
