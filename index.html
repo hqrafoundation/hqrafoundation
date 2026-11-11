@@ -1120,7 +1120,7 @@ window.HQRA_FCM={apiKey:"AIzaSyCWbTKdlHqAL63mGY4c9qh3i4wXuRcdDqg",projectId:"hqr
 </script>
 <script id="hqra-update">
 /* নতুন সংস্করণ এলে সদস্যের অ্যাপ নিজে নতুন হয়ে যাবে (লিংক বদলাতে হবে না) */
-window.HQRA_APP_VER="2026-11-11-1630";
+window.HQRA_APP_VER="2026-11-11-1730";
 window.hqraDoUpdate=function(){
  try{if(typeof hqraKeepAlive==='function')hqraKeepAlive(120000)}catch(e){}
  try{sessionStorage.setItem('hqra_upd_try',window.__hqLatest||'1');sessionStorage.setItem('hqra_upd_keep',String(Date.now()))}catch(e){}
@@ -2666,7 +2666,7 @@ body.hq-admin-open{overflow:hidden}
 </style>
 <script id="hqra-admin-corner-js">
 (function(){
- var ADMIN_URL='admin.html';
+ var ADMIN_URL='admin.html?v='+encodeURIComponent(window.HQRA_APP_VER||Date.now());
  function mk(){
   if(document.getElementById('hqAdminBtn'))return;
   var b=document.createElement('button');b.id='hqAdminBtn';b.type='button';b.innerHTML='🛡️ এডমিন';b.setAttribute('aria-label','এডমিন প্যানেল');
