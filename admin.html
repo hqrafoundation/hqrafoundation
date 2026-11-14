@@ -588,8 +588,6 @@ setTimeout(()=>{try{hqFixNode(document.body)}catch(e){}},500);
     <p class="notice">সদস্য অ্যাপ থেকে বিকাশে জমা জানালে এখানে আসবে। ফোনের বিকাশ SMS মিললে নিজে নিজেই হিসাবে বসে যাবে, না মিললে এখানে ✅ চাপুন।</p>
     <div id="smsAutoBox" class="notice" style="margin:8px 0"></div>
     <button class="primary" style="width:100%" onclick="hqraPayRefresh(false)">🔄 অনুরোধ দেখুন / রিফ্রেশ</button>
-    <button class="primary" id="hqraSyncAllBtn" style="width:100%;margin-top:10px;background:#087f5b" onclick="hqraSyncAllNow(this)">☁️ সব হিসাব ক্লাউডে সিঙ্ক করুন (Sync All)</button>
-    <div id="hqraSyncAllStatus" class="notice" style="margin-top:8px">Firebase সিঙ্কের অবস্থা এখানে দেখা যাবে।</div>
     <div id="payReqStatus" class="notice" style="margin:8px 0"></div>
     <div id="payReqList"></div>
   </div>
@@ -2589,11 +2587,7 @@ async function hqraApproveClick(id,btn){
     const m=members.find((x,i)=>hqraMemberKey(x,i)===p.memberKey)||{};
     if(confirm("✅ হিসাবে যুক্ত হয়েছে। সদস্যকে SMS পাঠাবেন?")){
       const num=p.senderNumber||m.phone||"";
-      const mn=k=>{const q=String(k||"").split("-").map(Number);return q[0]&&q[1]?new Date(q[0],q[1]-1,1).toLocaleString("en-US",{month:"long",year:"numeric"}):String(k)};
-      const ms=(p.months||[]).slice().sort().map(mn).join(", ")||"Advance";
-      const dd=String(p.payDate||p.createdAt||"").slice(0,10).split("-").reverse().join("/")||"";
-      const amt=Number(p.amount||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
-      const msg=`Dear\n${p.name||""}\nYour ${p.kind==="share"?"share":"DPS"} installment has been successfully deposited.\nAmount: BDT ${amt}\nDate: ${dd}\nMonth: ${ms}\nAccount: HQRA FOUNDATION\nThank you for your trust and cooperation.\nBest Regards,\n~HQRA FOUNDATION~`;
+      const msg=hqraConfirmMsg(p);
       if(window.HQRA_SMS&&window.HQRA_SMS.sendSms){const r=String(window.HQRA_SMS.sendSms(String(num).replace(/\s+/g,""),msg));alert(r==="OK"?"✅ SMS পাঠানো হয়েছে।":"SMS যায়নি: "+r)}
       else location.href="sms:"+String(num).replace(/\s+/g,"")+"?body="+encodeURIComponent(msg);
     }
@@ -4593,47 +4587,6 @@ window.hqDueWa=function(k){var x=(window.__hqDue||[])[k];if(!x)return;var ph=Str
  },1200);
 })();
 </script>
-<script>
-/* অ্যাডমিনের এক ক্লিকে ফোনের সব স্থানীয় হিসাব Firebase-এ পাঠানো */
-async function hqraSyncAllNow(btn) {
-  if (typeof hqraCloudSession === "undefined" || !hqraCloudSession) {
-    alert("আগে Firebase অ্যাডমিন লগইন করুন।");
-    return;
-  }
-  if (hqraSyncRunning) {
-    alert("আগের সিঙ্ক সম্পন্ন হওয়া পর্যন্ত অপেক্ষা করুন।");
-    return;
-  }
-  if (!confirm("এই ফোনের সব সদস্য, জমা, লেনদেন ও অ্যাকাউন্টের হিসাব Firebase-এ পাঠাবেন?")) return;
-
-  const status = document.getElementById("hqraSyncAllStatus");
-  const oldText = btn.innerText;
-  btn.disabled = true;
-  btn.innerText = "⏳ সব হিসাব আপলোড হচ্ছে...";
-  status.innerText = "সিঙ্ক চলছে। অ্যাপ বন্ধ করবেন না।";
-
-  try {
-    /* পরিচিত সিঙ্ক-হ্যাশ খালি করা হচ্ছে, যাতে প্রতিটি স্থানীয় রেকর্ড আবার আপলোড হয়।
-       খালি ট্র্যাকিংয়ের কারণে এই জোরপূর্বক আপলোডে ক্লাউডের অতিরিক্ত রেকর্ড মোছা হবে না। */
-    const st = hqraSyncState();
-    ["members", "transactions", "sharePayments", "memberDues", "accounts", "statements"]
-      .forEach(k => { st[k] = {}; });
-    st.admin = "";
-    hqraSaveSyncState(st);
-
-    await hqraSyncLocalToCloud();
-    const groups = hqraGroups();
-    const total = groups.reduce((sum, group) => sum + group[1].length, 0);
-    status.innerText = "✅ সিঙ্ক সম্পন্ন। স্থানীয় মোট রেকর্ড: " + total + " টি।";
-    alert("সব স্থানীয় হিসাব Firebase-এ সিঙ্ক সম্পন্ন হয়েছে।");
-  } catch (e) {
-    status.innerText = "❌ সিঙ্ক ব্যর্থ: " + (e && e.message ? e.message : e);
-    alert("সিঙ্ক সম্পন্ন হয়নি: " + (e && e.message ? e.message : e));
-  } finally {
-    btn.disabled = false;
-    btn.innerText = oldText;
-  }
-}
-</script>
+<style id="hqra-fullscreen">@media(min-width:900px){.container,.brand-row{max-width:none!important;width:100%}.container{padding-left:max(20px,2.5vw)!important;padding-right:max(20px,2.5vw)!important}.brand-row{padding-left:max(20px,2.5vw);padding-right:max(20px,2.5vw)}.dashboard-layout{grid-template-columns:minmax(0,1fr) 360px}}@media(min-width:1500px){body{font-size:16px}}</style>
 </body>
 </html>
