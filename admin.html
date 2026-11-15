@@ -678,12 +678,20 @@ setTimeout(()=>{try{hqFixNode(document.body)}catch(e){}},500);
     <button class="primary" style="width:100%" onclick="hqraOpenCloudLogin()">🔐 লগইন ও ডাটা সিঙ্ক করুন</button>
     <p class="notice" style="margin-top:8px">লগইন করলে সব হিসাব অনলাইনে সংরক্ষিত হবে। ফোন হারালে নতুন ফোনে লগইন করে ডাটা ফেরত পাবেন।</p>
   </div>
+  <div class="card" id="hqBkCard">
+    <h2 class="section-title">☁️ Firebase ব্যাকআপ (ফোনে সেভ হয় না)</h2>
+    <p class="notice" id="hqBkStatus">লগইন করা থাকলে প্রতিদিন নিজে নিজে ব্যাকআপ হবে। এখনই নিতে নিচের বোতাম চাপুন।</p>
+    <div class="actions"><button class="primary" onclick="hqraCloudBackup()">☁️ এখনই ব্যাকআপ নিন</button><button class="gray" onclick="hqraBackupList()">♻️ ব্যাকআপ থেকে ফেরত</button></div>
+    <div id="hqBkList"></div>
+    <div class="actions" style="margin-top:8px"><button class="gray" onclick="hqraHealthCheck()">🩺 হিসাব পরীক্ষা</button><button class="gray" onclick="hqraDedupe()">🧹 ডুপ্লিকেট পরিষ্কার</button><button class="gray" onclick="var n=hqraRepairOrphans();alert(n?n+'টি জমা সদস্যের সাথে আবার জোড়া লাগানো হয়েছে':'সব জমা ঠিকভাবে সদস্যের সাথে যুক্ত আছে');if(n)hqraKickSync()">🔧 জমা-সদস্য মেলান</button></div>
+    <div id="hqBkOut" class="notice" style="margin-top:8px;white-space:pre-wrap"></div>
+  </div>
   <div class="card">
-    <h2 class="section-title">💾 ব্যাকআপ</h2>
+    <h2 class="section-title">💾 ব্যাকআপ / ফেরত</h2>
     <p class="notice">আপনার হিসাব অ্যাপের ডাটা ফোনের অ্যাপ-স্টোরেজে থাকে। HTML থেকে APK বানালে বা অ্যাপের ডাটা মুছে গেলে ডাটা হারাতে পারে। তাই নিয়মিত ব্যাকআপ নিয়ে Google Drive/Files-এ সংরক্ষণ করুন।</p>
     <div class="actions">
-      <button class="primary" onclick="exportData()">⬇️ ব্যাকআপ নিন</button>
-      <button class="gray" onclick="document.getElementById('importFile').click()">⬆️ ব্যাকআপ ফেরত</button>
+      <button class="primary" onclick="exportData()">☁️ ব্যাকআপ নিন (Firebase-এ)</button>
+      <button class="gray" onclick="document.getElementById('importFile').click()">⬆️ ফাইল থেকে ফেরত</button>
     </div>
     <input id="importFile" type="file" accept=".json" class="hidden" onchange="importData(event)">
   </div>
@@ -998,15 +1006,28 @@ async function hqraSyncOnce(){
 }
 async function hqraLoadCloud(){
   if(!hqraCloudSession)return;
-  const [ms,txs,sps,ds,acs,aaAll]=await Promise.all([hqraList("hqra_members"),hqraList("hqra_transactions"),hqraList("hqra_sharePayments"),hqraList("hqra_memberDues"),hqraList("hqra_accounts"),hqraList("hqra_adminAccess").catch(()=>[])]);
+  if(localStorage.getItem("hqra_mirror_pending")){try{await hqraMirrorToCloud();localStorage.removeItem("hqra_mirror_pending")}catch(e){throw new Error("ফেরত-দেওয়া ডাটা ক্লাউডে মেলাতে পারেনি: "+e.message)}return}
+  const [ms,txs,sps,ds,acs,aaAll]=await Promise.all([hqraList("hqra_members"),hqraList("hqra_transactions"),hqraList("hqra_sharePayments"),hqraList("hqra_memberDues"),hqraList("hqra_accounts"),hqraFetch(hqraDocPath("hqra_adminAccess","assistant"),{headers:{Authorization:`Bearer ${hqraCloudSession.idToken}`}}).then(x=>[{id:"assistant",...Object.fromEntries(Object.entries(x.fields||{}).map(([k,v])=>[k,hqraFromFs(v)]))}]).catch(()=>[])]);
   const st=hqraSyncState();
   if(!st.members&&!st.transactions&&!st.memberDues&&(ms.length||txs.length||ds.length)&&(members.length||transactions.length||memberDues.length)){
     if(confirm("এই ফোন আগে কখনো ক্লাউডের সাথে মেলানো হয়নি।\n\nফোনের ভেতরের পুরোনো/নমুনা ডেটা মুছে শুধু ক্লাউডের আসল ডেটা নেবেন? (OK চাপলে হিসাব দ্বিগুণ হওয়া ঠেকানো যায় — প্রস্তাবিত)\n\nCANCEL চাপলে ফোনের ডেটার সাথে মিলিয়ে নেওয়া হবে।")){members=[];transactions=[];sharePayments=[];memberDues=[];accounts=[]}
   }
   /* ফোনের ডাটা কখনো মুছবে না: ফোন + ক্লাউড মিলিয়ে নেওয়া হয়। ফোনে মুছে ফেলা (আগে সিঙ্ক হওয়া) রেকর্ড ফিরবে না। */
   const merge=(col,local,remote)=>{
-    const known=st[col]||(st[col]={}),ids=new Set(local.map(x=>String(x.id))),out=local.slice();
-    remote.forEach(r=>{const id=String(r.id);if(ids.has(id)||known[id]!==undefined)return;out.push(r);known[id]=hqraHash(JSON.stringify(r))});
+    /* ক্লাউডই আসল: ক্লাউডের রেকর্ড নেওয়া হয়; শুধু ফোনে করা অসিঙ্ক পরিবর্তন রাখা হয়; অন্য জায়গায় মোছা রেকর্ড ফোন থেকেও যায় */
+    const known=st[col]||(st[col]={}),rm=new Map(remote.map(r=>[String(r.id),r])),out=[],seen=new Set();
+    local.forEach(x=>{
+      const id=String(x.id);if(seen.has(id))return;seen.add(id);
+      if(rm.has(id)){
+        const r=rm.get(id),lh=hqraHash(JSON.stringify(x));
+        if(known[id]!==undefined&&known[id]!==lh){out.push(x)}
+        else{out.push(r);known[id]=hqraHash(JSON.stringify(r))}
+      }else{
+        if(known[id]!==undefined){delete known[id]}
+        else out.push(x);
+      }
+    });
+    remote.forEach(r=>{const id=String(r.id);if(seen.has(id))return;if(known[id]!==undefined)return;out.push(r);known[id]=hqraHash(JSON.stringify(r))});
     return out;
   };
   const rz=Date.parse(localStorage.getItem("hqra_member_reset_v1")||"")||0;
@@ -1963,7 +1984,13 @@ function contactMember(id){
   o.addEventListener("click",e=>{if(e.target===o||e.target.id==="hqCSclose"){o.remove();return}const b=e.target.closest("button[data-u]");if(b&&b.dataset.u){hqOpenUrl(b.dataset.u);o.remove()}});
 }
 /* অ্যাপে ফিরে এলে সাথে সাথে SMS দেখুন (টাকার অটো-কনফার্ম) */
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){try{hqraSmsPoll()}catch(e){}}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){try{hqraSmsPoll()}catch(e){}try{hqraPullNow()}catch(e){}}});
+let hqraLastPull=Date.now();
+async function hqraPullNow(){
+  if(!hqraCloudSession||hqraSyncRunning||Date.now()-hqraLastPull<60000||document.querySelector("#modal:not(.hidden)"))return;
+  hqraLastPull=Date.now();
+  try{await hqraSyncLocalToCloud();await hqraLoadCloud();renderHome();renderMembers();renderDues();renderSharePayments();renderAccounts();try{renderTransactions()}catch(e){}}catch(e){console.warn("pull",e)}
+}
 window.addEventListener("focus",()=>{try{hqraSmsPoll()}catch(e){}});
 
 
@@ -2033,6 +2060,8 @@ function hqraUndoTransfer(sid){
 }
 
 async function exportData(){
+  if(hqraCloudSession){await hqraCloudBackup(false,"হাতে");return}
+  if(!confirm("Firebase-এ লগইন নেই, তাই ব্যাকআপ অনলাইনে যাবে না।\n\nOK = ফোনে ফাইল হিসেবে সেভ করুন\nCANCEL = আগে ☁️ Firebase-এ লগইন করুন (প্রস্তাবিত)"))return;
   try{
     const json=JSON.stringify(buildBackupData(),null,2);
     if(!json) throw new Error("EMPTY_BACKUP");
@@ -2085,6 +2114,127 @@ async function exportData(){
     alert("ব্যাকআপ তৈরি করা যায়নি। কারণ: "+(err&&err.message?err.message:String(err))+"। অ্যাপের ডাটা মুছবেন না।");
   }
 }
+/* ===== v10: Firebase snapshot backup, safe restore, health check, dedupe ===== */
+const HQ_BK_SKIP=/^hqra_(sync_state|auto_backup|cloud_|delete_log|mirror|backup_recovery)/;
+function hqBkOut(t){const e=document.getElementById("hqBkOut");if(e)e.textContent=t}
+function hqBkStat(t){const e=document.getElementById("hqBkStatus");if(e)e.textContent=t}
+function hqBkPayload(){const st={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k!=null&&!HQ_BK_SKIP.test(k))st[k]=localStorage.getItem(k)}return{app:"HQRA Foundation",backupVersion:4,createdAt:new Date().toISOString(),storage:st}}
+async function hqGz(str){const cs=new Blob([str]).stream().pipeThrough(new CompressionStream("gzip"));const u8=new Uint8Array(await new Response(cs).arrayBuffer());let b="";for(let i=0;i<u8.length;i+=0x8000)b+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(b)}
+async function hqGunz(b64){const bin=atob(b64),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);const ds=new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"));return await new Response(ds).text()}
+function hqCounts(){return{members:members.length,transactions:transactions.length,memberDues:memberDues.length,sharePayments:sharePayments.length,accounts:accounts.length}}
+async function hqraCloudBackup(auto,label){
+  if(!hqraCloudSession){if(!auto)alert("আগে ☁️ Firebase-এ লগইন করুন।");return false}
+  try{
+    if(!auto)hqBkStat("ব্যাকআপ হচ্ছে… অপেক্ষা করুন");
+    const json=JSON.stringify(hqBkPayload());let enc="raw",body=json;
+    try{if(window.CompressionStream){body=await hqGz(json);enc="gzb64"}}catch(e){body=json;enc="raw"}
+    const size=enc==="gzb64"?600000:180000,parts=[];for(let i=0;i<body.length;i+=size)parts.push(body.slice(i,i+size));
+    const id="backup_"+Date.now();
+    for(let i=0;i<parts.length;i++)await hqraPut("hqra_adminAccess",{id:id+"_p"+i,kind:"backup_part",data:parts[i]});
+    await hqraPut("hqra_adminAccess",{id:id+"_m",kind:"backup_meta",createdAt:new Date().toISOString(),by:hqraCloudSession.email||"",parts:parts.length,enc,label:label||(auto?"স্বয়ংক্রিয়":"হাতে"),counts:hqCounts(),size:body.length});
+    localStorage.setItem("hqra_last_cloud_backup",String(Date.now()));
+    hqraPruneBackups().catch(()=>{});
+    hqBkStat("✅ ব্যাকআপ Firebase-এ সেভ হয়েছে: "+new Date().toLocaleString("bn-BD"));
+    return id;
+  }catch(e){
+    hqBkStat("ব্যাকআপ হয়নি: "+e.message);if(!auto)alert("ব্যাকআপ হয়নি: "+e.message+"\n(Firebase-এ লগইন আছে কিনা ও ইন্টারনেট দেখুন)");return false}
+}
+async function hqBackupMetas(){
+  const q=await hqraFetch("https://firestore.googleapis.com/v1/projects/"+HQRA_FIREBASE_CONFIG.projectId+"/databases/(default)/documents/hqra_adminAccess?pageSize=300&mask.fieldPaths=kind&mask.fieldPaths=createdAt&mask.fieldPaths=parts&mask.fieldPaths=enc&mask.fieldPaths=label&mask.fieldPaths=counts&mask.fieldPaths=by",{headers:{Authorization:"Bearer "+hqraCloudSession.idToken}});
+  return (q.documents||[]).map(x=>({id:(x.name||"").split("/").pop(),...Object.fromEntries(Object.entries(x.fields||{}).map(([k,v])=>[k,hqraFromFs(v)]))})).filter(x=>x.kind==="backup_meta").sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+async function hqraPruneBackups(){
+  const ms=await hqBackupMetas();
+  for(const m of ms.slice(14)){const base=m.id.replace(/_m$/,"");for(let i=0;i<(m.parts||0);i++)await hqraDelete("hqra_adminAccess",base+"_p"+i);await hqraDelete("hqra_adminAccess",m.id)}
+}
+async function hqraBackupList(){
+  const box=document.getElementById("hqBkList");
+  if(!hqraCloudSession){alert("আগে ☁️ Firebase-এ লগইন করুন।");return}
+  box.innerHTML='<p class="notice">তালিকা আনা হচ্ছে…</p>';
+  try{
+    const ms=await hqBackupMetas();
+    if(!ms.length){box.innerHTML='<p class="notice">এখনও কোনো ব্যাকআপ নেই।</p>';return}
+    box.innerHTML=ms.map(m=>{const c=m.counts||{};return'<div style="border:1px solid #cfe3d8;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13.5px"><b>'+new Date(m.createdAt).toLocaleString("bn-BD")+'</b> <small>('+(m.label||"")+')</small><br>সদস্য '+(c.members||0)+' • লেনদেন '+(c.transactions||0)+' • জমা '+(c.memberDues||0)+' • শেয়ার '+(c.sharePayments||0)+'<br><button class="primary" style="margin-top:6px" onclick="hqraRestoreCloud(\''+m.id+'\')">♻️ এটি ফেরত দিন</button></div>'}).join('');
+  }catch(e){box.innerHTML='<p class="notice">তালিকা আনা যায়নি: '+e.message+'</p>'}
+}
+async function hqraRestoreCloud(metaId){
+  try{
+    const m=await hqraFetch(hqraDocPath("hqra_adminAccess",metaId),{headers:{Authorization:"Bearer "+hqraCloudSession.idToken}});
+    const meta=Object.fromEntries(Object.entries(m.fields||{}).map(([k,v])=>[k,hqraFromFs(v)]));
+    const base=metaId.replace(/_m$/,"");let body="";
+    for(let i=0;i<meta.parts;i++){const x=await hqraFetch(hqraDocPath("hqra_adminAccess",base+"_p"+i),{headers:{Authorization:"Bearer "+hqraCloudSession.idToken}});body+=hqraFromFs(x.fields.data)}
+    const d=JSON.parse(meta.enc==="gzb64"?await hqGunz(body):body);
+    const c=meta.counts||{},cur=hqCounts();
+    if(!confirm("ফেরত দিলে এখনকার সব হিসাব মুছে এই ব্যাকআপের হিসাব বসবে এবং Firebase-ও একই হবে (ডাবল/পুরোনো কিছু থাকবে না)।\n\nএখন: সদস্য "+cur.members+", লেনদেন "+cur.transactions+", জমা "+cur.memberDues+"\nব্যাকআপ ("+new Date(meta.createdAt).toLocaleString("bn-BD")+"): সদস্য "+(c.members||0)+", লেনদেন "+(c.transactions||0)+", জমা "+(c.memberDues||0)+"\n\nফেরত দেওয়ার আগে এখনকার অবস্থার একটি ব্যাকআপ নিজে থেকে নেওয়া হবে। চালিয়ে যাবেন?"))return;
+    hqBkStat("এখনকার অবস্থার নিরাপত্তা-ব্যাকআপ হচ্ছে…");
+    const ok=await hqraCloudBackup(true,"ফেরত দেওয়ার আগে");if(!ok&&!confirm("নিরাপত্তা-ব্যাকআপ হয়নি। তবুও এগিয়ে যাবেন?"))return;
+    hqApplyStorage(d.storage);await hqraAfterRestore();
+  }catch(e){alert("ফেরত দেওয়া যায়নি: "+e.message)}
+}
+function hqApplyStorage(st){Object.keys(st||{}).forEach(k=>{if(!HQ_BK_SKIP.test(k))localStorage.setItem(k,String(st[k]))})}
+function hqReloadCore(){
+  const g=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return Array.isArray(v)?v:d}catch(e){return d}};
+  transactions=g(KEY,[]);members=g(MEMBER_KEY,[]);sharePayments=g(SHARE_PAY_KEY,[]);memberDues=g("hqra_member_dues_v1",[]);accounts=g(ACCOUNT_KEY,[]);
+}
+async function hqraMirrorToCloud(){
+  /* ক্লাউডকে ফোনের হিসাবের হুবহু কপি বানায়: ফোনে নেই এমন রেকর্ড ক্লাউড থেকে মোছে, সবকিছু নতুন করে আপলোড করে */
+  const st={names:{}};
+  for(const [col,arr] of hqraGroups()){
+    if(col==="statements")continue;
+    const cc=HQRA_CLOUD_COLLECTIONS[col],ids=new Set(arr.map(x=>String(x.id))),cloud=await hqraList(cc);
+    for(const r of cloud){if(!ids.has(String(r.id)))await hqraDelete(cc,r.id)}
+  }
+  const cs=HQRA_CLOUD_COLLECTIONS.statements,ms=new Set(members.map((m,i)=>String(hqraMemberKey(m,i))));
+  try{for(const r of await hqraList(cs)){if(!ms.has(String(r.id)))await hqraDelete(cs,r.id)}}catch(e){}
+  hqraSaveSyncState(st);
+  await hqraSyncOnce();
+}
+async function hqraAfterRestore(){
+  hqReloadCore();try{hqraRepairOrphans()}catch(e){}
+  if(hqraCloudSession){
+    try{hqBkStat("Firebase-এর সাথে মেলানো হচ্ছে…");await hqraMirrorToCloud();hqBkStat("✅ ফেরত ও Firebase সিঙ্ক সম্পন্ন");alert("✅ ব্যাকআপ ফেরত এসেছে এবং Firebase-এও একই হিসাব বসেছে। অ্যাপ নতুন করে খুলছে।");location.reload();return}
+    catch(e){localStorage.setItem("hqra_mirror_pending","1");alert("ফেরত হয়েছে কিন্তু Firebase মেলানো শেষ হয়নি ("+e.message+")। আবার লগইন করলে নিজে মিলবে।")}
+  }else{localStorage.setItem("hqra_mirror_pending","1");alert("ফেরত হয়েছে। এরপর Firebase-এ লগইন করলেই ক্লাউডের হিসাবও এর সাথে মিলে যাবে (পুরোনো/ডাবল আসবে না)।")}
+  location.reload();
+}
+/* হিসাব পরীক্ষা ও ডুপ্লিকেট */
+function hqSig(x){const o={};Object.keys(x).sort().forEach(k=>{if(k!=="id"&&k!=="ts"&&k!=="createdAt"&&k!=="updatedAt")o[k]=x[k]});return JSON.stringify(o)}
+function hqDupGroups(arr){const m={};arr.forEach((x,i)=>{(m[hqSig(x)]=m[hqSig(x)]||[]).push(i)});return Object.values(m).filter(g=>g.length>1)}
+function hqraRepairOrphans(){
+  const nn=v=>String(v||"").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu,""),ids=new Set(members.map(m=>String(m.id))),byName={};
+  members.forEach(m=>{const k=nn(m.name);(byName[k]=byName[k]||[]).push(m)});
+  let n=0;
+  [memberDues,sharePayments].forEach(a=>a.forEach(d=>{if(d.memberId===undefined||ids.has(String(d.memberId)))return;const c=byName[nn(d.memberName)];if(c&&c.length===1){d.memberId=c[0].id;n++}}));
+  if(n){try{saveMemberDues();saveAll()}catch(e){}}
+  return n;
+}
+function hqraHealthCheck(){
+  const out=[],memIds=new Set(members.map(m=>String(m.id)));
+  [["transactions","লেনদেন",transactions],["memberDues","সদস্য-জমা",memberDues],["sharePayments","শেয়ার কিস্তি",sharePayments]].forEach(([k,n,a])=>{const g=hqDupGroups(a);if(g.length)out.push("⚠️ "+n+": "+g.length+" গ্রুপে হুবহু একই রেকর্ড ("+g.reduce((s,x)=>s+x.length-1,0)+"টি বাড়তি)");
+    const ids={};a.forEach(x=>ids[x.id]=(ids[x.id]||0)+1);const di=Object.values(ids).filter(c=>c>1).length;if(di)out.push("⚠️ "+n+": "+di+"টি আইডি একাধিকবার আছে")});
+  const orph=memberDues.filter(d=>d.memberId!==undefined&&!memIds.has(String(d.memberId))).length+sharePayments.filter(d=>d.memberId!==undefined&&!memIds.has(String(d.memberId))).length;
+  if(orph)out.push("⚠️ "+orph+"টি জমা/কিস্তি এমন সদস্যের নামে যার তথ্য নেই");
+  const names={};members.forEach(m=>{const k=String(m.name||"").trim().toLowerCase();if(k)names[k]=(names[k]||0)+1});const dn=Object.entries(names).filter(e=>e[1]>1).map(e=>e[0]);
+  if(dn.length)out.push("⚠️ একই নামে একাধিক সদস্য: "+dn.slice(0,6).join(", "));
+  try{(accounts||[]).forEach(a=>{const b=typeof accountBalance==="function"?accountBalance(a):null;if(b!==null&&b<0)out.push("⚠️ অ্যাকাউন্ট \""+(a.name||a.id)+"\" ঋণাত্মক: "+b)})}catch(e){}
+  hqBkOut(out.length?out.join("\n")+"\n\nডুপ্লিকেট থাকলে 🧹 বোতাম চাপুন (আগে দেখিয়ে জিজ্ঞাসা করবে)।":"✅ কোনো ডুপ্লিকেট বা অসঙ্গতি পাওয়া যায়নি।\nসদস্য "+members.length+" • লেনদেন "+transactions.length+" • জমা "+memberDues.length+" • শেয়ার "+sharePayments.length);
+}
+async function hqraDedupe(){
+  const sets=[["transactions","লেনদেন"],["memberDues","সদস্য-জমা"],["sharePayments","শেয়ার কিস্তি"]],get=k=>({transactions,memberDues,sharePayments})[k];
+  let total=0,msg=[];sets.forEach(([k,n])=>{const g=hqDupGroups(get(k)),c=g.reduce((s,x)=>s+x.length-1,0);total+=c;if(c)msg.push(n+": "+c+"টি")});
+  if(!total){alert("কোনো হুবহু-একই ডুপ্লিকেট পাওয়া যায়নি।");return}
+  if(!confirm("হুবহু একই (তারিখ, পরিমাণ, সদস্য, বিবরণ সব এক) রেকর্ড পাওয়া গেছে:\n"+msg.join("\n")+"\n\nপ্রতি গ্রুপে একটি রেখে বাকিগুলো মুছবেন?\n(সতর্কতা: একই দিনে সত্যিই দুইবার একই টাকা নিলে সেটাও মুছে যাবে — আগে ব্যাকআপ নেওয়া হবে।)"))return;
+  if(hqraCloudSession)await hqraCloudBackup(true,"ডুপ্লিকেট মোছার আগে");
+  const dd=a=>{const rm=new Set();hqDupGroups(a).forEach(g=>g.slice(1).forEach(i=>rm.add(i)));return a.filter((_,i)=>!rm.has(i))};
+  transactions=dd(transactions);memberDues=dd(memberDues);sharePayments=dd(sharePayments);
+  try{saveMemberDues()}catch(e){}saveAll();
+  try{hqraKickSync()}catch(e){}
+  try{renderHome();renderMembers();renderDues();renderSharePayments();renderAccounts()}catch(e){}
+  hqBkOut("🧹 "+total+"টি ডুপ্লিকেট মুছে ফেলা হয়েছে।");
+}
+/* দৈনিক স্বয়ংক্রিয় ক্লাউড ব্যাকআপ */
+setInterval(function(){try{if(hqraCloudSession&&Date.now()-Number(localStorage.getItem("hqra_last_cloud_backup")||0)>20*3600*1000)hqraCloudBackup(true,"স্বয়ংক্রিয়")}catch(e){}},10*60*1000);
+
 function importData(e){
   const file=e.target.files[0];if(!file)return;
   const r=new FileReader();
@@ -2093,7 +2243,7 @@ function importData(e){
     const d=JSON.parse(r.result);
     if(d.app!=="HQRA Foundation")throw new Error("wrong");
     if(d.storage && typeof d.storage==="object"){
-      Object.keys(d.storage).forEach(k=>localStorage.setItem(k,String(d.storage[k])));
+      Object.keys(d.storage).forEach(k=>{if(!HQ_BK_SKIP.test(k))localStorage.setItem(k,String(d.storage[k]))});
     }
     if(Array.isArray(d.transactions))transactions=d.transactions;
     if(Array.isArray(d.members))members=d.members;
@@ -2115,7 +2265,7 @@ function importData(e){
     localStorage.setItem(EVENT_KEY,JSON.stringify(events));localStorage.setItem(GALLERY_KEY,JSON.stringify(gallery));
     localStorage.setItem(LEADER_KEY,JSON.stringify(leaders));localStorage.setItem(BKASH_KEY,JSON.stringify(bkash));
     renderHome();renderNotices();renderAbout();renderActivities();renderEvents();renderGallery();renderContact();renderDonate();renderBkash();renderLeaders();
-    alert("ব্যাকআপ সফলভাবে ফেরত এসেছে। অ্যাপটি একবার বন্ধ করে আবার খুললে সব তথ্য যাচাই করুন।");
+    hqraAfterRestore().catch(function(){});
   }catch(x){alert("এই ফাইলটি HQRA Foundation-এর সঠিক ব্যাকআপ নয় বা ফাইলটি ক্ষতিগ্রস্ত হয়েছে।");}
   };
   r.readAsText(file);e.target.value="";
@@ -2589,7 +2739,11 @@ async function hqraApproveClick(id,btn){
       const num=p.senderNumber||m.phone||"";
       const msg=hqraConfirmMsg(p);
       if(window.HQRA_SMS&&window.HQRA_SMS.sendSms){const r=String(window.HQRA_SMS.sendSms(String(num).replace(/\s+/g,""),msg));alert(r==="OK"?"✅ SMS পাঠানো হয়েছে।":"SMS যায়নি: "+r)}
-      else location.href="sms:"+String(num).replace(/\s+/g,"")+"?body="+encodeURIComponent(msg);
+      else{
+        try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(msg)}catch(e){}
+        alert("📋 বার্তা কপি হয়েছে।\nমেসেজ অ্যাপ খুললে লেখার ঘরে পেস্ট করে পাঠান।\nনম্বর: "+String(num).replace(/\s+/g,""));
+        location.href="sms:"+String(num).replace(/\s+/g,"")+"?body="+encodeURIComponent(msg);
+      }
     }
   }
 }
