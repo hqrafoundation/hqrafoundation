@@ -1202,7 +1202,7 @@ function renderTransferAccounts(){
   const oldFrom=from.value||from.dataset.pick||"",oldTo=to.value||to.dataset.pick||"";from.innerHTML=opts(mfs,"বিকাশ অ্যাকাউন্ট নির্বাচন");to.innerHTML=opts(banks,"ব্যাংক অ্যাকাউন্ট নির্বাচন");
   if(mfs.some(a=>a.id===oldFrom))from.value=oldFrom;if(banks.some(a=>a.id===oldTo))to.value=oldTo;if(!to.dataset.hq){to.dataset.hq=1;to.addEventListener("change",()=>{to.dataset.pick=to.value});from.addEventListener("change",()=>{from.dataset.pick=from.value})}
   const date=document.getElementById("transferDate");if(date&&!date.value)date.value=today();
-  const history=document.getElementById("transferHistory");if(history){const groups=transactions.filter(t=>t.source==="bkashBankTransfer"&&t.transferRole==="in").slice().reverse().slice(0,8);const fmt=n=>"৳"+Number(Math.round(n*100)/100).toLocaleString("bn-BD");history.innerHTML=groups.length?'<b>সাম্প্রতিক ট্রান্সফার</b>'+groups.map(g=>{const fee=transactions.find(t=>t.sourceId===g.sourceId&&t.transferRole==="charge");return `<div class="tx"><div class="tx-head"><b>ব্যাংকে ${fmt(Number(g.amount))}</b><span class="amount-out">চার্জ ${fmt(fee?Number(fee.amount):0)}</span></div><div class="tx-meta">${formatDateBD(g.date)} • ${esc(g.note||"")}</div><div class="tx-actions"><button class="gray" onclick="hqraUndoTransfer('${esc(String(g.sourceId))}')">🗑️ এই ট্রান্সফার বাতিল করুন</button></div></div>`}).join(""):'<p class="notice">এখনো কোনো ট্রান্সফার রেকর্ড নেই।</p>'}
+  const history=document.getElementById("transferHistory");if(history){const groups=transactions.filter(t=>t.source==="bkashBankTransfer"&&t.transferRole==="in").slice().reverse().slice(0,8);const fmt=n=>"৳"+Number(Math.round(n*100)/100).toLocaleString("bn-BD");history.innerHTML=groups.length?'<b>সাম্প্রতিক ট্রান্সফার</b>'+groups.map(g=>{const fee=transactions.find(t=>t.sourceId===g.sourceId&&t.transferRole==="charge");return `<div class="tx"><div class="tx-head"><b>ব্যাংকে ${fmt(Number(g.amount))}</b><span class="amount-out">চার্জ ${fmt(fee?Number(fee.amount):0)}</span></div><div class="tx-meta">${formatDateBD(g.date)} • ${esc(g.note||"")}</div><div class="tx-actions"><button class="gray" onclick="hqraEditTransfer('${esc(String(g.sourceId))}')">✏️ এডিট</button><button class="gray" onclick="hqraUndoTransfer('${esc(String(g.sourceId))}')">🗑️ ডিলিট</button></div></div>`}).join(""):'<p class="notice">এখনো কোনো ট্রান্সফার রেকর্ড নেই।</p>'}
 }
 function hqTransferFee(amount){const m=document.getElementById("transferFeeManual");if(m&&m.value!=="")return Math.max(0,Math.round((Number(m.value)||0)*100)/100);return Math.round((amount/1000*12.5+Number.EPSILON)*100)/100}
 function updateTransferFee(){const amount=Math.max(0,Number(document.getElementById("transferAmount")?.value)||0),fee=hqTransferFee(amount);const f=document.getElementById("transferFeePreview"),t=document.getElementById("transferTotalPreview");if(f)f.textContent=money(fee);if(t)t.textContent=money(amount+fee)}
@@ -2052,8 +2052,37 @@ function hqraDelTransfer(sid){const {g}=hqraTransferGroup(sid);if(!g.length)retu
   transactions=transactions.filter(t=>!g.includes(t));saveAll();renderHome();try{renderTransactions()}catch(e){}try{renderAccounts()}catch(e){}}
 
 
+
+function hqraEditTransfer(sid){
+  const T=t=>t.source==="bkashBankTransfer"&&String(t.sourceId)===String(sid);
+  const o=transactions.find(t=>T(t)&&t.transferRole==="out"),i=transactions.find(t=>T(t)&&t.transferRole==="in"),c=transactions.find(t=>T(t)&&t.transferRole==="charge");
+  if(!o||!i){alert("ট্রান্সফারের এন্ট্রি পাওয়া যায়নি।");return}
+  const old=document.getElementById("hqTrEdit");if(old)old.remove();
+  const d=document.createElement("div");d.id="hqTrEdit";d.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px";
+  d.innerHTML='<div style="background:#fff;border-radius:18px;padding:18px;width:100%;max-width:420px;max-height:90vh;overflow:auto"><h3 style="margin:0 0 8px">✏️ ট্রান্সফার এডিট</h3>'+
+  '<label>টাকার পরিমাণ (৳)</label><input id="teAmt" type="number" inputmode="decimal" value="'+(Number(o.amount)||0)+'">'+
+  '<label>তারিখ</label><input id="teDate" type="date" value="'+esc(o.date||"")+'">'+
+  '<label>চার্জ (৳) — ০ দিলে চার্জ থাকবে না</label><input id="teFee" type="number" inputmode="decimal" value="'+(c?Number(c.amount)||0:0)+'">'+
+  '<label>বিবরণ</label><input id="teNote" value="'+esc(o.note||"")+'">'+
+  '<div style="display:flex;gap:8px;margin-top:14px"><button class="primary" style="flex:1" onclick="hqraSaveTransferEdit(\''+esc(String(sid))+'\')">💾 সংরক্ষণ</button><button class="gray" style="flex:1" onclick="document.getElementById(\'hqTrEdit\').remove()">বাতিল</button></div></div>';
+  document.body.appendChild(d);
+}
+function hqraSaveTransferEdit(sid){
+  const T=t=>t.source==="bkashBankTransfer"&&String(t.sourceId)===String(sid);
+  const o=transactions.find(t=>T(t)&&t.transferRole==="out"),i=transactions.find(t=>T(t)&&t.transferRole==="in");let c=transactions.find(t=>T(t)&&t.transferRole==="charge");
+  const amt=Number(document.getElementById("teAmt").value)||0,date=document.getElementById("teDate").value,fee=Math.max(0,Number(document.getElementById("teFee").value)||0),note=document.getElementById("teNote").value.trim();
+  if(!(amt>0)){alert("সঠিক টাকা লিখুন।");return}if(!date){alert("তারিখ দিন।");return}
+  o.amount=amt;i.amount=amt;o.date=date;i.date=date;o.note=note;i.note=note;
+  if(fee>0){if(c){c.amount=fee;c.date=date;c.note=note}else transactions.push({id:"TR-FEE-"+Date.now(),type:"expense",date,category:"বিকাশ ট্রান্সফার চার্জ",amount:fee,person:o.person||"বিকাশ",method:"বিকাশ",accountId:o.accountId,note:note,source:"bkashBankTransfer",sourceId:o.sourceId,transferRole:"charge"})}
+  else if(c)transactions=transactions.filter(t=>t!==c);
+  document.getElementById("hqTrEdit").remove();saveAll();renderHome();try{renderTransactions()}catch(e){}try{renderAccounts()}catch(e){}
+  alert("✅ ট্রান্সফার আপডেট হয়েছে।");
+}
+
 function hqraUndoTransfer(sid){
-  if(!confirm("এই ট্রান্সফারের সব এন্ট্রি (বিকাশ খরচ, ব্যাংক জমা, চার্জ) মুছে যাবে। বিকাশ ও ব্যাংকের ব্যালেন্স আগের অবস্থায় ফিরবে। চালিয়ে যাবেন?"))return;
+  const o=transactions.find(t=>t.source==="bkashBankTransfer"&&String(t.sourceId)===String(sid)&&t.transferRole==="out");const amt=o?Number(o.amount)||0:0;
+  if(!confirm("এই ট্রান্সফার ডিলিট করবেন?"+(amt?"\n\nপরিমাণ: ৳"+amt.toLocaleString("bn-BD")+(o&&o.date?" ("+o.date+")":""):"")+"\n\nবিকাশ, ব্যাংক ও চার্জের সব এন্ট্রি মুছে যাবে। বিকাশের ব্যালেন্স বাড়বে, ব্যাংকের কমবে; মোট ব্যালেন্স একই থাকবে।\n\n⚠️ টাকা সত্যিই ব্যাংকে গিয়ে থাকলে ডিলিট করবেন না (ভুল এন্ট্রি হলে তবেই)। আগে নিরাপত্তা-ব্যাকআপ নেওয়া হবে।"))return;
+  try{if(hqraCloudSession)hqraCloudBackup(true,"ট্রান্সফার ডিলিটের আগে")}catch(e){}
   const n=transactions.length;transactions=transactions.filter(t=>!(t.source==="bkashBankTransfer"&&String(t.sourceId)===String(sid)));
   saveAll();renderHome();try{renderTransactions()}catch(e){}try{renderAccounts()}catch(e){}
   alert("বাতিল হয়েছে ("+(n-transactions.length)+" টি এন্ট্রি)।");
@@ -4432,7 +4461,7 @@ window.hqraPayHist=async function(){var o=document.getElementById('payHistOut');
 var _r=window.renderPayReq;window.renderPayReq=renderPayReq=function(){_r.apply(this,arguments);try{mk()}catch(e){}};
 })();
 </script>
-<style id="hqra-txact">#transactionList .tx-actions{display:flex!important;gap:8px;margin-top:10px}#transactionList .tx-actions button{flex:1;padding:9px 10px;font-size:13px;border-radius:10px}</style>
+<style id="hqra-txact2">#transferHistory .tx-actions{display:flex!important;gap:8px;margin-top:10px}#transferHistory .tx-actions button{flex:1;padding:9px 10px;font-size:13px;border-radius:10px}</style><style id="hqra-txact">#transactionList .tx-actions{display:flex!important;gap:8px;margin-top:10px}#transactionList .tx-actions button{flex:1;padding:9px 10px;font-size:13px;border-radius:10px}</style>
 <script id="hqra-usage">
 /* ===== অ্যাডমিন কার্যকলাপ লগ + সদস্য ব্যবহার + পাসওয়ার্ড রিসেট ===== */
 (function(){
